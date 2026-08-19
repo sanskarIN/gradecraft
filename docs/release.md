@@ -67,10 +67,12 @@ If a hosted demo is published, smoke-test that exact deployment URL, including s
 
 1. Commit the final documentation/version changes.
 2. Confirm the release commit is the exact clean-checkout commit that passed verification.
-3. Tag `vX.Y.Z` and push the tag.
-4. The release workflow runs `npm run verify`, then packages that verified `dist/` output into `gradecraft-pwa.zip` and attaches it to the GitHub release.
-5. Verify the attached archive came from the expected commit.
-6. Smoke-test the hosted/static deployment again after publication.
+3. Validate the intended tag locally with `npm run release:tag -- vX.Y.Z`; it must exactly match `package.json`.
+4. Tag `vX.Y.Z` and push the tag.
+5. The release workflow validates the tag/package version pair, runs `npm run verify`, runs the high-severity dependency audit, installs Chromium, and executes Playwright against the already-built verified `dist/` output.
+6. Only after every gate passes does the workflow package `dist/` into `gradecraft-pwa.zip` and attach it to the GitHub release.
+7. Verify the attached archive came from the expected commit.
+8. Smoke-test the hosted/static deployment again after publication.
 
 ## Evidence rule
 
