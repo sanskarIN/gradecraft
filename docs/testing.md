@@ -1,6 +1,6 @@
 # Testing Strategy
 
-GradeCraft uses layered automated checks. The goal is to verify calculation correctness, data-boundary behavior, browser workflows, and repository quality separately so one passing layer does not hide failures in another.
+GradeCraft uses layered automated checks. The goal is to verify calculation correctness, data-boundary behavior, browser workflows, release metadata integrity, and repository quality separately so one passing layer does not hide failures in another.
 
 ## Unit/domain tests
 
@@ -10,13 +10,13 @@ GradeCraft uses layered automated checks. The goal is to verify calculation corr
 - `tests/whatIf.test.ts` — temporary score overrides plus points and weighted target-score solving.
 - `tests/schema.test.ts` — persisted schema compatibility, semester metadata, and optional locale settings.
 - `tests/i18n.test.ts` — English/Hindi catalog parity, fallback behavior, and dynamic localized messages.
-- `tests/property.test.ts` — seeded deterministic property-style checks for grade bounds, target-solver consistency, and CSV label round trips across punctuation, spreadsheet-sensitive prefixes, apostrophes, and Unicode.
+- `tests/property.test.ts` — seeded deterministic property-style checks for grade bounds, target-solver consistency, and CSV label round trips across punctuation, spreadsheet formula prefixes, control-character prefixes, apostrophes, and Unicode.
 
 The property suite uses a fixed pseudo-random seed so it explores many generated inputs while remaining reproducible on every runner.
 
 ## Data integration and security tests
 
-- `tests/csv.test.ts` — CSV parsing, formula-prefix neutralization, validation, arbitrary header mapping, and alias suggestions.
+- `tests/csv.test.ts` — CSV parsing, formula/control-prefix neutralization, protected-label round trips, validation, arbitrary header mapping, and alias suggestions.
 - Backup tests cover JSON envelope/schema behavior.
 - `tests/encryptedBackup.test.ts` — encrypted-backup round trips, wrong-passphrase rejection, tamper detection, and minimum passphrase enforcement.
 - Local Storage tests cover primary/recovery behavior.
@@ -27,6 +27,8 @@ The property suite uses a fixed pseudo-random seed so it explores many generated
 - `tests/ErrorBoundary.test.tsx` verifies unexpected render failures produce a safe recovery state without raw error text.
 - `tests/SettingsPage.test.tsx` verifies live language switching and document-language synchronization.
 
+The About screen's version is sourced directly from `package.json`. Repository-level `version:check` protects that wiring and prevents semantic-version literals from drifting into locale catalogs.
+
 ## End-to-end browser tests
 
 Playwright runs against a production Vite build in Chromium.
@@ -36,6 +38,8 @@ Playwright runs against a production Vite build in Chromium.
 - `e2e/localization.spec.ts` — switch to Hindi and verify the choice persists across reload.
 - `e2e/data-portability.spec.ts` — upload third-party CSV headers, review suggested mappings, confirm import, and verify the assignment in the course.
 
+The 2.0.12 manual release smoke test additionally verifies About displays `2.0.12` in both supported UI languages; see [`release.md`](release.md).
+
 ## Repository quality gates
 
 Run the combined local verification command:
@@ -44,15 +48,23 @@ Run the combined local verification command:
 npm run verify
 ```
 
-It includes TypeScript checking, ESLint, repository format checks, local Markdown-link checks, secret scanning, the static release-readiness gate, unit/component/property tests with coverage, the production build, and bundle-size budgets.
+It includes TypeScript checking, ESLint, repository format checks, local Markdown-link checks, secret scanning, version synchronization, the static release-readiness gate, unit/component/property tests with coverage, the production build, and bundle-size budgets.
 
-The release-readiness gate can also be run independently without installing browser tooling:
+Version synchronization can be checked independently:
+
+```bash
+npm run version:check
+```
+
+It verifies package semantic versioning, the matching dated changelog heading, the handoff version, package-derived About wiring, and the absence of hardcoded GradeCraft semantic versions in English/Hindi catalogs.
+
+The release-readiness gate can also be run independently:
 
 ```bash
 npm run release:gate
 ```
 
-It verifies required project/docs/community files, required package scripts, README identity/support markers, semantic version shape, CI quality steps, and release-workflow verification wiring.
+It verifies required project/docs/community files, required package scripts, README identity/support markers, semantic version shape, CI quality steps, and release-workflow verification wiring. It also requires the version-sync infrastructure itself so that gate cannot silently disappear.
 
 Run browser tests separately:
 
@@ -66,6 +78,12 @@ The local documentation-link checker and production bundle budget can also be ru
 npm run docs:links
 npm run build
 npm run perf:budget
+```
+
+For the prepared release candidate, validate package/tag consistency with:
+
+```bash
+npm run release:tag -- v2.0.12
 ```
 
 ## Coverage
