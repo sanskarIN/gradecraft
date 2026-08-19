@@ -16,14 +16,18 @@
 
 - [x] Editable existing assignments
 - [x] Undo action for destructive assignment removal
-- [ ] Localization packs beyond English
-- [ ] Optional semester grouping
+- [x] English and Hindi localization packs with a persisted language setting
+- [x] Optional semester metadata, dashboard grouping, filtering, and search
 - [ ] Real release screenshots and hosted demo link
-- [ ] Weighted-category target-score solver
+- [x] Weighted-category target-score solver
 
 ## 2.0 — Optional advanced capabilities
 
-- [ ] Opt-in encrypted cross-device backup using a user-chosen provider
-- [ ] Import mapping UI for arbitrary third-party CSV headers
+- [x] Provider-agnostic encrypted backup files for storage with a user-chosen provider
+- [x] Import mapping UI for arbitrary third-party CSV headers
 
-Roadmap items are proposals, not promises. Privacy-first offline use remains the product baseline.
+## Remaining publication work
+
+Real screenshots and a hosted demo must come from a verified production build. The repository intentionally does not substitute mock imagery or claim a deployment that has not been verified.
+
+Privacy-first offline use remains the product baseline. Cloud storage is optional transport chosen by the user; GradeCraft does not require an account or receive backup passphrases.
