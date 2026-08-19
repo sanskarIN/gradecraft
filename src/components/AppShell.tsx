@@ -1,0 +1,5 @@
+import type { PropsWithChildren } from "react";
+import { en } from "../i18n/en";
+import { navigate } from "../hooks/useHashRoute";
+const links=[["#/dashboard","Overview"],["#/gpa","GPA"],["#/what-if","What-if"],["#/data","Import / Export"],["#/settings","Settings"],["#/about","About"]] as const;
+export function AppShell({children}:PropsWithChildren){return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><header className="topbar"><button className="brand" onClick={()=>navigate("/dashboard")} aria-label="GradeCraft home"><span className="brand__mark">G</span><span><strong>{en.appName}</strong><small>{en.tagline}</small></span></button><nav aria-label="Primary navigation">{links.map(([href,label])=><a href={href} key={href}>{label}</a>)}</nav></header><main id="main-content" className="main-content">{children}</main><footer className="footer"><span>{en.madeBy}</span><a href="https://github.com/sanskarIN" target="_blank" rel="noreferrer">GitHub</a><a href="https://buymeacoffee.com/sanskarIN" target="_blank" rel="noreferrer">Buy Me a Coffee</a></footer></div>;}
