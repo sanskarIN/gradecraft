@@ -27,4 +27,5 @@ jobs:
       - run: npm run release:gate
       - run: npm test
       - run: npm run build
+      - run: npm run perf:budget
       - run: npm audit --audit-level=high
