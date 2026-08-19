@@ -79,6 +79,7 @@ npm run lint
 npm run format:check
 npm run docs:links
 npm run security:secrets
+npm run version:check
 npm run release:gate
 npm test
 npm run build
@@ -92,7 +93,9 @@ For the combined local quality gate:
 npm run verify
 ```
 
-`verify` includes the static release-readiness gate, deterministic unit/component/property tests, the production build, and bundle-size budgets. Browser E2E and the dependency audit remain explicit release checks so their evidence is visible separately.
+`verify` includes version synchronization, the static release-readiness gate, deterministic unit/component/property tests, the production build, and bundle-size budgets. Browser E2E and the dependency audit remain explicit release checks so their evidence is visible separately.
+
+The About screen derives its displayed version from `package.json`; translated catalogs do not carry their own semantic-version strings. `npm run version:check` prevents package, changelog, handoff, and user-visible version wiring from drifting apart.
 
 ## Build and release
 
@@ -102,6 +105,8 @@ npm run verify
 npm run test:e2e
 npm audit --audit-level=high
 ```
+
+Before creating a release tag, run `npm run release:tag -- vX.Y.Z` with the exact version from `package.json`.
 
 The production PWA bundle is emitted to `dist/`. See [`docs/release.md`](docs/release.md) for the release procedure and [`docs/release-readiness.md`](docs/release-readiness.md) for the evidence matrix.
 
@@ -114,7 +119,7 @@ The production PWA bundle is emitted to `dist/`. See [`docs/release.md`](docs/re
 - `src/components/` — reusable accessible UI primitives
 - `src/pages/` — route-level product experiences
 - `tests/` and `e2e/` — automated verification
-- `scripts/` — repository quality, security, release-readiness, documentation, and performance checks
+- `scripts/` — repository quality, security, versioning, release-readiness, documentation, and performance checks
 
 Read [`docs/architecture.md`](docs/architecture.md) and [`docs/adr/`](docs/adr/).
 
