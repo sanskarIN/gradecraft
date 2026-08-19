@@ -2,9 +2,26 @@
 
 GradeCraft is intentionally client-only and dependency-light. Core grade calculations do not wait on network requests, and optional encrypted backup work runs only when the user explicitly requests an export or restore.
 
-## Budgets
+## Automated release budgets
 
-- Investigate any single release increase above 20% in compressed application JS/CSS.
+`npm run perf:budget` inspects the production `dist/` directory after `npm run build` and fails when:
+
+- any JavaScript asset exceeds 500 KiB uncompressed;
+- any CSS asset exceeds 150 KiB uncompressed; or
+- the complete production directory exceeds 750 KiB uncompressed.
+
+These are regression guardrails rather than a claim that every supported device will load or execute within a fixed time. The command is part of `npm run verify` and the main CI workflow.
+
+Run it locally with:
+
+```bash
+npm run build
+npm run perf:budget
+```
+
+## Investigation budgets
+
+- Investigate any single release increase above 20% in compressed application JS/CSS even when the hard budget still passes.
 - Initial routes must not depend on remote APIs after static assets load.
 - Grade recalculation and what-if updates should remain effectively instant for ordinary course sizes.
 - Dashboard semester/search filtering should remain responsive for normal student datasets.
@@ -21,6 +38,7 @@ GradeCraft is intentionally client-only and dependency-light. Core grade calcula
 - CSV files are read only after explicit selection and mapping remains in memory until confirmation.
 - Web Crypto is invoked only for explicit encrypted-backup operations.
 - Translation catalogs are local modules with no runtime language-file fetch.
+- Deterministic property tests exercise hundreds of grade-calculation inputs without runtime network access.
 
 ## Dataset scaling
 
@@ -32,9 +50,10 @@ CSV parsing is in-memory and intentionally guarded by UI file-size limits. Encry
 
 For a production candidate:
 
-1. Compare `dist/` asset sizes with the previous release.
-2. Exercise dashboard, course detail, what-if, GPA, CSV mapping, and encrypted backup flows on a mid-range mobile device/browser.
-3. Check that service-worker caching does not retain obsolete assets after an update.
-4. Profile before changing algorithms or adding dependencies.
+1. Run `npm run verify` and record the bundle-budget result.
+2. Compare compressed `dist/` asset sizes with the previous release.
+3. Exercise dashboard, course detail, what-if, GPA, CSV mapping, and encrypted backup flows on a mid-range mobile device/browser.
+4. Check that service-worker caching does not retain obsolete assets after an update.
+5. Profile before changing algorithms or adding dependencies.
 
 Performance optimizations must not weaken input validation, encryption parameters, accessibility, or data-integrity checks.
