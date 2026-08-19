@@ -1,0 +1,3 @@
+import { readFileSync } from "node:fs";import { describe,expect,it } from "vitest";
+const workflow=readFileSync(new URL("../.github/workflows/release.yml",import.meta.url),"utf8");
+describe("release workflow",()=>{it("requires the tag to match the package version",()=>{expect(workflow).toContain("Verify tag matches package version");expect(workflow).toContain("GITHUB_REF_NAME");});it("publishes a checksum beside the PWA archive",()=>{expect(workflow).toContain("sha256sum gradecraft-pwa.zip");expect(workflow).toContain("gradecraft-pwa.zip.sha256");});it("uses the GitHub CLI instead of a third-party release publisher",()=>{expect(workflow).toContain("gh release create");expect(workflow).not.toContain("softprops/action-gh-release");});});
