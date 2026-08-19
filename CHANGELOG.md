@@ -22,11 +22,11 @@ No unreleased changes are currently queued after the 2.0.12 release-candidate pr
 - Executable production bundle budgets for JavaScript, CSS, and total `dist/` size.
 - Release-tag/package-version consistency validation.
 - Package/changelog/handoff/About version synchronization validation.
-- Deterministic property-style coverage for generated grade cases, target-score solver consistency, and CSV Unicode/formula-sensitive label round trips.
+- Deterministic property-style coverage for generated grade cases, target-score solver consistency, and CSV Unicode/formula/control-prefix label round trips.
 - CI artifacts for coverage and Playwright diagnostics.
 - Dedicated release-readiness evidence documentation.
 - Expanded Playwright journeys for course grading, GPA, localization persistence, and mapped CSV import.
-- Regression coverage for localization, encrypted backups, semester compatibility, weighted planning, PWA deployment rules, storage recovery, grading-scale safeguards, category references, and restore cancellation.
+- Regression coverage for localization, encrypted backups, semester compatibility, weighted planning, PWA deployment rules, storage recovery, grading-scale safeguards, category references, restore cancellation, and control-prefixed CSV cells.
 
 ### Changed
 
@@ -59,6 +59,7 @@ No unreleased changes are currently queued after the 2.0.12 release-candidate pr
 
 ### Security
 
+- CSV export neutralization now also protects cells beginning with tab, carriage-return, or line-feed control prefixes in addition to `=`, `+`, `-`, and `@`, while preserving protected labels on GradeCraft round trip.
 - Added a restrictive browser Content Security Policy and no-referrer policy.
 - User-facing backup/CSV failures no longer expose raw parser exception text.
 - Storage recovery logging records safe error classification instead of raw exception text.
