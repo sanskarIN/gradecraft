@@ -9,10 +9,10 @@
 **Pull request:** #2 — `feat: complete weighted planning and release audit`  
 **PR state:** Open, draft, mergeable  
 **Base branch/head:** `main` at `1177bf730c43f0dad1d996ee4b4e3c7df93c7477`  
-**Audited code head immediately before this handoff update:** `cbf7a6cc6ac5d0b32d75c5db09031da9320bcde1`  
-**PR size at that audited code head:** 221 meaningful commits over `main`, 90 changed files
+**Audited code head immediately before this handoff update:** `3332d7e6045ea772c6a5a5940653ab3ea201a0c4`  
+**PR size at that audited code head:** 224 meaningful commits over `main`, 90 changed files
 
-This file is the authoritative continuation checkpoint. Do not describe the release as verified until the latest CI, E2E, CodeQL, dependency, build, clean-checkout, PWA, and accessibility evidence is actually green. Historical commit/status sections below are retained for traceability; the **Latest verification checkpoint**, **Known limitations / open issues**, and **Next exact tasks** sections supersede older status statements.
+This file is the authoritative continuation checkpoint. Do not describe the release as verified until the latest CI, E2E, CodeQL, dependency, build, clean-checkout, PWA, and accessibility evidence is actually green. Historical commit/status sections below are retained for traceability; the **Latest GitHub Actions checkpoint before this handoff commit**, **Known limitations / open issues**, and **Next exact tasks** sections supersede older status statements.
 
 ## Completed work
 
@@ -94,7 +94,7 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 - Modal closing restores focus to the still-connected control that opened the dialog.
 - First-run onboarding moves focus into the onboarding dialog and marks application background regions inert for the duration of onboarding, preventing keyboard and assistive-technology interaction with hidden background controls.
 - Primary navigation exposes the current destination with `aria-current="page"` and a visible active-state treatment.
-- Settings now provides direct entry points to privacy/data transfer and About in addition to appearance, accessibility, grading-profile, update, and delete controls.
+- Settings provides direct entry points to privacy/data transfer and About in addition to appearance, accessibility, grading-profile, update, and delete controls.
 - Data-transfer surfaces use `aria-busy` while file operations are active.
 - Kept the required `Made by the Sanskar` credit and contact/funding links.
 
@@ -158,14 +158,15 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 
 ### Release automation
 
-- CI continues to run typecheck, lint, format verification, documentation links, release-version consistency, secret-pattern scanning, tests with coverage, production build, and high-severity npm audit.
-- E2E continues to install Playwright Chromium and run the browser journeys.
-- E2E now uploads `playwright-report/` and `test-results/` as a seven-day artifact when the browser job fails, making browser failures diagnosable without local reproduction.
+- CI runs typecheck, lint, format verification, documentation links, release-version consistency, secret-pattern scanning, tests with coverage, production build, and high-severity npm audit.
+- E2E installs Playwright Chromium and runs the browser journeys.
+- E2E uploads `playwright-report/` and `test-results/` as a seven-day artifact when the browser job fails, making browser failures diagnosable without local reproduction.
 - CodeQL remains enabled on pushes/pull requests to `main` plus the scheduled scan.
-- Tagged release automation now verifies the tag exactly matches `v${package.json version}` before publishing.
+- Tagged release automation verifies the tag exactly matches `v${package.json version}` before publishing.
 - Tagged release automation runs the complete verification and high-severity dependency audit before packaging.
 - Tagged release automation packages `dist/` as `gradecraft-pwa.zip` and generates `gradecraft-pwa.zip.sha256`.
 - Tagged release publishing uses GitHub's authenticated `gh release create` CLI instead of the previous third-party `softprops/action-gh-release` action.
+- Release documentation explicitly instructs verifying the published archive against the checksum file before distribution.
 - Added static release-workflow tests protecting tag/version matching, checksum generation, and native GitHub CLI publishing.
 
 ### Testing
@@ -213,7 +214,7 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 ### Documentation
 
 - Updated `README.md` with current hardened release-candidate features, commands, architecture directories, privacy/security posture, benchmark command, and verification commands.
-- Updated `CHANGELOG.md` with reliability, data-integrity, grading-profile lifecycle, CSV ambiguity/bounds, explicit-delete, browser-policy, PWA cache/icon, accessibility, validation, testing, automation, and dependency-hardening work.
+- Updated `CHANGELOG.md` with reliability, data-integrity, grading-profile lifecycle, CSV ambiguity/bounds/strict quoting, explicit-delete, browser-policy, PWA cache/icon, accessibility, validation, testing, release-integrity automation, and dependency-hardening work.
 - Updated `ROADMAP.md` to mark completed release-hardening refinements while leaving localization packs, optional semester grouping, real screenshots, and hosted demo work explicit.
 - Updated `SECURITY.md` with current CSV/restore hardening, canonical timestamps, CSP/referrer posture, PWA cache/scope behavior, storage-failure behavior, user-safe exceptions, structured-log redaction, and secret-scanning coverage.
 - Updated `PRIVACY.md` with local recovery-copy behavior, console-log redaction, local import validation, external-link behavior, and explicit-delete semantics.
@@ -221,7 +222,7 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 - Updated `docs/architecture.md` with domain/data/errors/state/UI/i18n/platform/verification layers, persistence invariants, normalized identity comparison, and security boundaries.
 - Updated `docs/development.md` with all verification/repository/security/benchmark commands and engineering rules.
 - Updated `docs/setup.md` with root/subpath PWA configuration and verification.
-- Updated `docs/release.md` with complete verification gates, benchmark/a11y/PWA checks, tag/package matching, SHA-256 release artifacts, and native GitHub CLI publishing.
+- Updated `docs/release.md` with complete verification gates, benchmark/a11y/PWA checks, tag/package matching, SHA-256 release artifacts, checksum verification guidance, and native GitHub CLI publishing.
 - Updated `docs/testing.md` with current regression, deterministic fuzz, migration, component, static security, cache-isolation, release-workflow, E2E, repository check, benchmark, and PWA scope.
 - Updated `docs/accessibility.md` with current-page navigation, dialog naming/focus restoration, onboarding focus/background isolation, transfer busy state, modal lifecycle behavior, and persistence alerts.
 - Updated `docs/performance.md` with the deterministic large-course benchmark workflow.
@@ -371,11 +372,11 @@ Environment limitations encountered during this project session:
 
 GitHub Actions is the network-enabled verification path for this audit.
 
-At audited code head `cbf7a6cc6ac5d0b32d75c5db09031da9320bcde1`, PR #2 reported 221 commits over `main` and 90 changed files. The head-specific runs inspected immediately before this handoff update were:
+At audited code head `3332d7e6045ea772c6a5a5940653ab3ea201a0c4`, PR #2 reported 224 commits over `main` and 90 changed files. The head-specific runs inspected immediately before this handoff update were:
 
-- CI run `32224906481` — `pending` at last inspection.
-- E2E run `32224906457` — `queued` at last inspection.
-- CodeQL run `32224906465` — `pending` at last inspection.
+- CI run `32225364811` — `pending` at last inspection.
+- E2E run `32225364826` — `queued` at last inspection.
+- CodeQL run `32225364816` — `pending` at last inspection.
 
 Earlier rapid-commit runs were superseded by same-ref workflow concurrency cancellation. No passing state is claimed until the latest relevant runs actually conclude successfully. This `what_changed.md` commit itself creates a newer branch head and will create/supersede head-specific workflow runs; the next continuation must inspect the latest PR head rather than treating the IDs above as authoritative after this commit.
 
@@ -582,7 +583,7 @@ The previous checkpoint explicitly recorded these continuation commits:
 
 ## Phase 6 audit commit history — this continuation
 
-The branch moved from the previous audited code head `f13b54f0154ca1f5b1c3b40176e1088f19e6c4ff` to `cbf7a6cc6ac5d0b32d75c5db09031da9320bcde1` through exactly 93 additional meaningful commits before this handoff commit:
+The branch moved from the previous audited code head `f13b54f0154ca1f5b1c3b40176e1088f19e6c4ff` to `3332d7e6045ea772c6a5a5940653ab3ea201a0c4` through exactly 96 additional meaningful commits before this handoff commit:
 
 1. `7776fa3` — docs: finalize current GradeCraft audit handoff
 2. `ecd7f6b` — feat: support grading scale deletion action
@@ -677,6 +678,9 @@ The branch moved from the previous audited code head `f13b54f0154ca1f5b1c3b40176
 91. `48660e2` — docs: document release workflow regression coverage
 92. `6c269dd` — security: reject ambiguous CSV quote placement
 93. `cbf7a6c` — test: reject malformed CSV quote placement
+94. `91ca638` — docs: record complete continued GradeCraft audit handoff
+95. `e776caf` — docs: record release integrity and strict CSV parsing
+96. `3332d7e` — docs: align checksum verification wording with workflow
 
 ## Earlier baseline commits on `main`
 
