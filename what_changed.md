@@ -9,10 +9,10 @@
 **Pull request:** #2 — `feat: complete weighted planning and release audit`  
 **PR state:** Open, draft, mergeable  
 **Base branch/head:** `main` at `1177bf730c43f0dad1d996ee4b4e3c7df93c7477`  
-**Audited code head immediately before this handoff update:** `f13b54f0154ca1f5b1c3b40176e1088f19e6c4ff`  
-**PR size at that audited code head:** 128 meaningful commits over `main`, 62 changed files
+**Audited code head immediately before this handoff update:** `cbf7a6cc6ac5d0b32d75c5db09031da9320bcde1`  
+**PR size at that audited code head:** 221 meaningful commits over `main`, 90 changed files
 
-This file is the authoritative continuation checkpoint. Do not describe the release as verified until the latest CI, E2E, CodeQL, dependency, build, and clean-checkout evidence is actually green.
+This file is the authoritative continuation checkpoint. Do not describe the release as verified until the latest CI, E2E, CodeQL, dependency, build, clean-checkout, PWA, and accessibility evidence is actually green. Historical commit/status sections below are retained for traceability; the **Latest verification checkpoint**, **Known limitations / open issues**, and **Next exact tasks** sections supersede older status statements.
 
 ## Completed work
 
@@ -27,10 +27,15 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 - Made target-score planning use the active what-if scenario instead of only persisted scores.
 - Fixed weighted planner category selection so a valid positive-weight category is chosen even when the first category has zero weight.
 - Added strict target range and future-score input validation.
-- Added validation requiring at least one course category.
-- Hardened category validation against duplicate category IDs and now also rejects duplicate category names case-insensitively after trimming, preventing ambiguous CSV category mapping.
-- Hardened grading-scale validation against duplicate band IDs, duplicate labels, duplicate thresholds, incomplete scales without a 0% fallback band, out-of-range GPA values, and oversized scale text.
+- Required at least one course category.
+- Hardened category validation against duplicate IDs and duplicate names after trimming, Unicode NFKC compatibility normalization, and stable case folding.
+- Hardened grading-scale validation against duplicate band IDs, duplicate labels, duplicate thresholds, incomplete scales without a 0% fallback band, out-of-range GPA values, oversized scale text, and duplicate grading-profile names after normalized comparison.
+- Added safe grading-scale deletion. A scale cannot be deleted while referenced by a course and GradeCraft always retains at least one grading profile.
+- Added reducer-level grading-scale deletion invariants in addition to Settings UI protection.
+- Trimmed category names before course persistence and grading-profile/band labels before profile persistence while retaining user-facing display text.
 - Added deterministic property-style grade tests covering hundreds of generated valid point-based and weighted grade combinations and asserting results remain within valid percentage bounds.
+- Added a deterministic 10,000-assignment benchmark harness for point-based and weighted calculations.
+- Fixed target-score presentation so an “at least” required score is rounded upward rather than normally rounded downward, preventing displayed guidance from understating the true minimum.
 
 ### Persistence and data integrity
 
@@ -39,18 +44,20 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 - Rejects duplicate course, category, assignment, grading-scale, and grade-band identifiers.
 - Rejects empty persisted entity identifiers and unknown grading-scale references.
 - Rejects assignments referring to missing categories.
-- Rejects invalid weighted totals, invalid assignments, incomplete grading scales, empty course names, courses without categories, duplicate category names, and backups without any usable grading scale.
+- Rejects invalid weighted totals, invalid assignments, incomplete grading scales, empty course names, courses without categories, duplicate category names, duplicate grading-profile names, and backups without any usable grading scale.
 - Rejects restored course colors unless they are safe 3- or 6-digit hexadecimal color values, preventing imported style values from becoming arbitrary CSS resource-bearing values.
 - Added bounded persisted text validation for course names/codes, category names, assignment names, grading-scale names, and band labels.
 - Added strict calendar-date validation for assignment due dates, including correct leap-day handling.
+- Added canonical ISO timestamp validation for application, course, and assignment persistence timestamps.
 - Course editing prevents removal of a category that still owns assignments, preventing orphaned assignment references.
-- Assignment undo is now invalidated if the deleted assignment's original category is removed before Undo is used, preventing the undo path from recreating an orphaned assignment reference.
+- Assignment undo is invalidated if the deleted assignment's original category is removed before Undo is used, preventing the undo path from recreating an orphaned assignment reference.
 - Improved recovery behavior so a corrupted primary Local Storage record can be restored from a valid recovery record and the primary record is repaired where possible.
 - Prevents corrupted primary content from replacing a known-valid recovery record during the next save.
-- Local persistence now degrades safely if browser storage is blocked or inaccessible instead of throwing through application startup or save/delete operations.
+- Local persistence degrades safely if browser storage is blocked or inaccessible instead of throwing through application startup or save/delete operations.
 - Exposes persistence failure state to the application and shows an explicit user-visible alert warning that current changes may not survive leaving the tab.
-- Explicit local-data deletion now suppresses the immediate post-reset persistence write, leaving GradeCraft's primary and recovery storage keys removed for the reset operation instead of instantly writing default state back.
+- Explicit local-data deletion suppresses the immediate post-reset persistence write, leaving GradeCraft's primary and recovery storage keys removed for the reset operation instead of instantly writing default state back.
 - Kept explicit schema version `1` and migration entry point for future versions.
+- Added a dedicated migration regression suite so current-version acceptance, unsupported-version rejection, non-object rejection, and malformed-current-version rejection are explicit.
 
 ### CSV and backup safety
 
@@ -58,32 +65,46 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 - Kept spreadsheet-formula neutralization on exported CSV cells.
 - Fixed protected CSV text round trips so neutralized values are restored correctly on GradeCraft re-import.
 - Preserved legitimate user text that intentionally starts with an apostrophe.
-- Kept quoted-field parsing, score validation, category-weight validation, file-size limits, and browser-local parsing.
-- Added calendar validation for CSV due dates so impossible dates are rejected before importing.
+- Added strict CSV due-date validation so impossible calendar dates are rejected before importing.
 - Added bounded CSV category and assignment text fields so oversized imported content cannot bypass normal form limits.
-- CSV import now rejects duplicate column names instead of silently accepting an ambiguous header and selecting the last duplicate field.
-- Category names are unique within a course, eliminating case-insensitive category-name ambiguity in CSV mapping.
-- Kept CSV course selection valid after restoring/replacing data with a different set of course IDs.
+- CSV import rejects duplicate column names instead of silently accepting an ambiguous duplicate header.
+- CSV import rejects more than 10,000 assignment rows even when a file remains under the 5 MB UI file-size limit.
+- CSV import preserves omitted `categoryWeight` as omitted intent instead of silently converting it to `0%`.
+- CSV import rejects an explicit category weight that conflicts with the weight of an existing normalized category in the target course.
+- CSV category matching uses the same Unicode-normalized comparison rule as domain validation.
+- Category names are unique within a course, eliminating normalized category-name ambiguity in CSV mapping.
+- CSV course selection remains valid after restoring/replacing data with a different set of course IDs.
+- Added deterministic punctuation, multiline, formula-like, apostrophe, emoji, Hindi, and compatibility-Unicode CSV round-trip cases.
+- Hardened CSV quoting so a quote cannot begin in the middle of an unquoted field and non-whitespace text after a closing quote is rejected instead of being interpreted ambiguously.
+- Backup parsing converts malformed JSON, unsupported envelopes, and incompatible/invalid GradeCraft data into approved user-facing messages rather than exposing raw internal schema/parser exception text.
+- Centralized expected user-safe errors in `src/errors/UserFacingError.ts`; unexpected exceptions use approved operation-specific fallback text in the UI.
+- Data-transfer operations expose an asynchronous busy state and disable overlapping restore/import actions while a file is being read and validated.
 
 ### UI, accessibility, and localization readiness
 
 - Kept responsive phone/tablet/desktop layouts, onboarding, light/dark/system theme, compact mode, reduced motion, focus visibility, semantic forms/tables, native dialogs, and offline states.
-- Centralized the major English UI messages in `src/i18n/en.ts` and externalized the new persistence-system warning in `src/i18n/system.ts`.
+- Centralized major English UI messages in `src/i18n/en.ts`.
+- Externalized persistence-system warnings in `src/i18n/system.ts`, grading-scale lifecycle messages in `src/i18n/settings.ts`, and data-transfer loading/fallback/conflict messages in `src/i18n/dataTransfer.ts`.
 - Externalized application-shell, onboarding, dashboard, course, assignment-form, course-form, GPA, what-if, data-transfer, settings, About, modal, grade-ring, trend-chart, and contribution-chart text.
 - Added descriptive assignment Edit/Delete accessible names.
 - Improved chart semantics and preserved non-color textual values.
-- Native modal dialogs now have explicit accessible names wired with `aria-labelledby` and stable React-generated IDs.
+- Native modal dialogs have explicit accessible names wired with `aria-labelledby` and stable React-generated IDs.
 - Modal content is unmounted while closed so cancelled local form drafts reset before the next editing session.
 - Controlled modal closing avoids duplicate close callbacks.
-- First-run onboarding now moves focus into the onboarding dialog and marks application background regions inert for the duration of onboarding, preventing keyboard and assistive-technology interaction with hidden background controls.
+- Modal closing restores focus to the still-connected control that opened the dialog.
+- First-run onboarding moves focus into the onboarding dialog and marks application background regions inert for the duration of onboarding, preventing keyboard and assistive-technology interaction with hidden background controls.
+- Primary navigation exposes the current destination with `aria-current="page"` and a visible active-state treatment.
+- Settings now provides direct entry points to privacy/data transfer and About in addition to appearance, accessibility, grading-profile, update, and delete controls.
+- Data-transfer surfaces use `aria-busy` while file operations are active.
 - Kept the required `Made by the Sanskar` credit and contact/funding links.
 
 ### What-if and route resilience
 
 - What-if calculations remain non-destructive and scenario-aware.
 - Points and weighted target-score solving are covered for active and previously inactive weighted categories.
-- A stale or missing course ID in a `what-if` hash route now falls back to an available course instead of producing a broken planner state.
-- What-if course selection also re-synchronizes if the available course set changes while the page remains mounted.
+- A stale or missing course ID in a `what-if` hash route falls back to an available course instead of producing a broken planner state.
+- What-if course selection re-synchronizes if the available course set changes while the page remains mounted.
+- Displayed minimum target scores use upward rounding so the “need at least” statement remains conservative.
 
 ### PWA and deployment
 
@@ -94,20 +115,32 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 - Reworked the service-worker navigation strategy so application updates can refresh the navigation shell while a cached shell remains available offline.
 - Scoped service-worker handling to same-origin requests inside the registration scope.
 - Hardened service-worker registration so a browser registration failure does not create an unhandled promise rejection.
-- The service-worker install phase parses the built `index.html` and attempts to precache same-origin, in-scope application assets discovered from its `src` and `href` references, in addition to the core shell resources.
+- The service-worker install phase parses built `index.html` and attempts to precache same-origin, in-scope application assets discovered from its `src` and `href` references, in addition to core shell resources.
 - Service-worker activation waits for both obsolete-cache cleanup and `clients.claim()`.
-- Cache ownership is now isolated with the `gradecraft-` prefix. Activation only deletes obsolete GradeCraft-owned caches instead of deleting unrelated Cache Storage entries from other same-origin applications.
-- Runtime cache reads now open the current GradeCraft cache explicitly rather than using global `caches.match`, preventing accidental reads from unrelated same-origin caches.
-- The current shell cache is `gradecraft-shell-v4`.
-- Added a Playwright journey for an offline reload immediately after the first installed worker claims the page, covering the first-visit offline shell rather than only a previously warmed runtime cache.
+- Cache ownership is isolated with the `gradecraft-` prefix. Activation only deletes obsolete GradeCraft-owned caches instead of deleting unrelated Cache Storage entries from other same-origin applications.
+- Runtime cache reads open the current GradeCraft cache explicitly rather than using global `caches.match`, preventing accidental reads from unrelated same-origin caches.
+- The current shell cache is `gradecraft-shell-v5`.
+- Added a dedicated maskable SVG PWA icon and manifest entries separating `purpose: any` and `purpose: maskable`.
+- The maskable icon is included in the install-time core cache.
+- Added Playwright coverage for an offline reload immediately after the first installed worker claims the page, covering first-visit offline shell behavior rather than only a previously warmed runtime cache.
+- Added manifest-source regression tests for portable scope/start URL and separate install-icon purposes.
 
 ### Browser security baseline
 
-- Added a same-origin client-side Content Security Policy baseline in `index.html` covering scripts, styles, images, manifests, connections, workers, objects, base URLs, and form actions.
+- Added a same-origin client-side Content Security Policy baseline in `index.html` covering scripts, styles, images, fonts, manifests, connections, workers, media, frames, objects, base URLs, and form actions.
 - Added `no-referrer` metadata to avoid leaking navigation referrers from the application document.
-- Kept the CSP development-compatible with Vite/React by allowing the inline script/style behavior required by the development runtime and current component styling.
-- Documented that production hosts with header control should deploy and test a stricter response-header CSP where practical.
-- Added static regression coverage for the CSP/referrer policy and service-worker cache ownership/scope rules.
+- Tightened the CSP so scripts are restricted to `'self'`; inline scripts are not permitted.
+- Inline styles remain permitted because current bounded React UI style properties are used for progress widths and safe course colors.
+- Added static regression coverage proving the script directive does not contain `'unsafe-inline'` and object/base/frame restrictions remain present.
+- Documented that production hosts with header control should deploy and test equivalent or stricter response-header policy where practical.
+
+### Logging and secret handling
+
+- Structured logging redacts sensitive key names including credential, identity, course, assignment, category, grade, and score-related context.
+- Generic string values are also scanned for email and bearer-token patterns so secrets are not exposed merely because they appear under a non-sensitive key.
+- The repository secret scanner covers normal source/document/config text plus `.env`, `.env.*`, and therefore `.env.example`.
+- Secret scanning includes private-key, GitHub token, Google API key, OpenAI-style key, AWS access key, and Slack token patterns.
+- Generated build, coverage, Playwright report/result, dependency, and Git metadata directories are excluded from repository source scanning.
 
 ### Dependency and configuration hardening
 
@@ -115,66 +148,109 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 - Hardened ESLint configuration for Node/script and service-worker runtime globals, including the service-worker `fetch` global.
 - Promoted the React Refresh export rule from warning behavior to an error-compatible configuration and explicitly allowed the exported `useApp` hook.
 - Kept strict TypeScript checks, typed linting, deterministic whitespace/line-ending format checks, tests, production build, secret scan, and high-severity dependency audit in CI.
-- Added a temporary branch-only `Lockfile Once` workflow intended solely to generate and commit `package-lock.json` from a network-enabled GitHub runner because the execution sandbox could not access npm. This workflow must be removed once its purpose is complete.
+- Included `benchmarks/` in the strict application TypeScript project so typed lint/project-service checks do not treat benchmark code as an out-of-project file.
+- Added `npm run docs:links` to validate repository-relative Markdown/image link targets without requiring network access.
+- Added `npm run release:version-check` to require agreement between `package.json`, the About version string, and the changelog release section.
+- Added both repository checks to `npm run verify` and CI.
+- Extended Vitest coverage scope from domain/data modules to the centralized error module as well.
+- A temporary branch-only lockfile-generation workflow was added earlier to work around sandbox npm-network failure, but repeated branch pushes did not produce a verified `package-lock.json`; the ineffective temporary workflow has now been removed and will not ship.
+- `package-lock.json` remains absent, so deterministic `npm ci` conversion is intentionally blocked until a real network-enabled install can generate and verify the lockfile.
+
+### Release automation
+
+- CI continues to run typecheck, lint, format verification, documentation links, release-version consistency, secret-pattern scanning, tests with coverage, production build, and high-severity npm audit.
+- E2E continues to install Playwright Chromium and run the browser journeys.
+- E2E now uploads `playwright-report/` and `test-results/` as a seven-day artifact when the browser job fails, making browser failures diagnosable without local reproduction.
+- CodeQL remains enabled on pushes/pull requests to `main` plus the scheduled scan.
+- Tagged release automation now verifies the tag exactly matches `v${package.json version}` before publishing.
+- Tagged release automation runs the complete verification and high-severity dependency audit before packaging.
+- Tagged release automation packages `dist/` as `gradecraft-pwa.zip` and generates `gradecraft-pwa.zip.sha256`.
+- Tagged release publishing uses GitHub's authenticated `gh release create` CLI instead of the previous third-party `softprops/action-gh-release` action.
+- Added static release-workflow tests protecting tag/version matching, checksum generation, and native GitHub CLI publishing.
 
 ### Testing
 
-- Extended `tests/whatIf.test.ts` with weighted target planning, empty-category activation, invalid target input, and scenario helper coverage.
+- Extended `tests/whatIf.test.ts` with weighted target planning, empty-category activation, invalid target input, scenario helper coverage, and conservative target-score display rounding.
 - Added `tests/gradeProperties.test.ts` with deterministic property-style tests for point-based and weighted grade invariants.
-- Extended `tests/schema.test.ts` with duplicate identifiers, incomplete scales, empty course names, missing categories, duplicate category names, empty internal identifiers, missing grading scales, unsafe color values, and bounded course identity fields.
-- Extended `tests/csv.test.ts` with secure formula-hardening round trips, intentional leading-apostrophe preservation, valid/invalid due dates, bounded imported names, and duplicate-header rejection.
-- Added `tests/CourseForm.test.tsx` to prevent regression of category/assignment referential integrity.
-- Extended `tests/validation.test.ts` for duplicate category names, duplicate grading thresholds/IDs, complete 0%-fallback coverage, missing categories, due-date validation, leap-day handling, and bounded text fields.
-- Added `tests/Modal.test.tsx` for modal draft reset, controlled close callback semantics, and accessible dialog naming.
+- Extended `tests/schema.test.ts` with duplicate identifiers, incomplete scales, empty course names, missing categories, duplicate category names, empty internal identifiers, missing grading scales, unsafe color values, bounded course identity fields, and malformed persistence timestamps.
+- Refactored schema test fixtures so their timestamps and unrelated fields remain valid and each regression isolates the intended invalid invariant.
+- Added `tests/schemaScaleNames.test.ts` for persisted grading-profile name collisions after Unicode normalization.
+- Extended `tests/csv.test.ts` with secure formula-hardening round trips, intentional leading-apostrophe preservation, valid/invalid due dates, bounded imported names, duplicate-header rejection, bounded row counts, optional weight semantics, and malformed quote-placement rejection.
+- Added `tests/csvProperties.test.ts` with deterministic punctuation, multiline, formula-like, apostrophe, emoji, Hindi, and compatibility-Unicode round trips.
+- Added `tests/CourseForm.test.tsx` to prevent regression of category/assignment referential integrity and verify category trimming on save.
+- Extended `tests/validation.test.ts` for duplicate category names, Unicode-equivalent names/labels, grading-profile name collisions, duplicate grading thresholds/IDs, complete 0%-fallback coverage, missing categories, canonical ISO timestamps, due-date validation, leap-day handling, and bounded text fields.
+- Added `tests/Modal.test.tsx` for modal draft reset, controlled close callback semantics, accessible dialog naming, and focus restoration.
 - Updated `tests/setup.ts` with a jsdom dialog lifecycle shim only when the environment lacks native `showModal` support.
 - Extended `tests/storage.test.ts` with recovery-copy repair, corrupted-primary backup protection, and blocked-storage behavior.
-- Added `tests/AppContext.test.tsx` to verify explicit local-data deletion leaves the GradeCraft storage keys removed through the reset operation.
-- Extended `tests/App.test.tsx` with onboarding background isolation/focus behavior and the user-visible persistence-failure warning.
+- Added `tests/AppContext.test.tsx` to verify explicit local-data deletion remains cleared through reset and to protect grading-profile deletion invariants.
+- Extended `tests/App.test.tsx` with onboarding background isolation/focus behavior, current-page navigation semantics, and the user-visible persistence-failure warning.
 - Added `tests/WhatIfPage.test.tsx` for stale what-if route recovery.
-- Added `tests/DataPage.test.tsx` for CSV course-selection recovery after full-data replacement.
+- Extended `tests/DataPage.test.tsx` for CSV course-selection recovery, transfer busy state, and category-weight conflict handling.
 - Added `tests/CoursePage.test.tsx` to ensure assignment undo cannot recreate a reference to a category removed after deletion.
-- Added `tests/securityMetadata.test.ts` for browser security/referrer metadata.
+- Added `tests/SettingsPage.test.tsx` for Settings shortcuts plus grading-profile name/deletion integrity and trimmed profile persistence.
+- Added `tests/securityMetadata.test.ts` for browser CSP/referrer metadata and no-inline-script regression.
 - Added `tests/serviceWorkerSource.test.ts` for service-worker cache ownership, cache-read isolation, same-origin filtering, and scope filtering.
+- Added `tests/manifest.test.ts` for portable PWA manifest URLs and icon purposes.
+- Added `tests/migrations.test.ts` for explicit storage-version migration behavior.
+- Added `tests/UserFacingError.test.ts` for safe expected/fallback message selection.
+- Added `tests/releaseWorkflow.test.ts` for release tag/version matching, checksum generation, and native publisher protection.
 - Extended Playwright `e2e/core.spec.ts` with the primary weighted workflow: onboarding → create weighted course → add assignment → open what-if planner → calculate required target score.
 - Extended Playwright with first-installed-service-worker offline reload coverage.
-- Updated `docs/testing.md` with the expanded unit, property-style, integration, component, E2E, storage-resilience, security-metadata, cache-safety, accessibility, and PWA release checks.
+- Updated `docs/testing.md` with the expanded unit, property-style, deterministic fuzz, migration, integration, component, E2E, storage-resilience, security-metadata, cache-safety, release-workflow, accessibility, repository-check, performance, and PWA release checks.
 
 ### CI and repository quality
 
 - Kept CI, E2E, CodeQL, Dependabot, release workflow, issue templates, PR template, funding configuration, documentation, secret scan, and npm audit steps.
 - Added same-ref concurrency cancellation to CI, E2E, and CodeQL to reduce obsolete runs during a high-commit audit.
+- Added offline repository-relative documentation-link verification.
+- Added release-version consistency verification.
+- Added Playwright failure diagnostics retention.
+- Hardened tagged release publishing with tag/version matching and SHA-256 artifacts.
+- Removed the ineffective temporary lockfile-generation workflow rather than shipping a branch-only workaround.
 - The audit branch intentionally contains many small meaningful commits and should not be squash-merged if preserving the requested reviewable history is desired.
 - PR #2 remains draft while release verification is incomplete.
 
 ### Documentation
 
-- Updated `README.md` to include weighted target planning and accurate release-candidate features.
-- Updated `CHANGELOG.md` with the additional reliability, data-integrity, CSV ambiguity, explicit-delete, browser-policy, PWA cache-isolation, accessibility, validation, testing, and dependency-hardening work.
-- Updated `ROADMAP.md` to mark weighted target-score planning, deployment portability, and English catalog extraction complete.
-- Updated `SECURITY.md` with current CSV/restore hardening, browser CSP/referrer posture, PWA cache/scope behavior, storage-failure behavior, secret handling, and production CSP guidance.
+- Updated `README.md` with current hardened release-candidate features, commands, architecture directories, privacy/security posture, benchmark command, and verification commands.
+- Updated `CHANGELOG.md` with reliability, data-integrity, grading-profile lifecycle, CSV ambiguity/bounds, explicit-delete, browser-policy, PWA cache/icon, accessibility, validation, testing, automation, and dependency-hardening work.
+- Updated `ROADMAP.md` to mark completed release-hardening refinements while leaving localization packs, optional semester grouping, real screenshots, and hosted demo work explicit.
+- Updated `SECURITY.md` with current CSV/restore hardening, canonical timestamps, CSP/referrer posture, PWA cache/scope behavior, storage-failure behavior, user-safe exceptions, structured-log redaction, and secret-scanning coverage.
+- Updated `PRIVACY.md` with local recovery-copy behavior, console-log redaction, local import validation, external-link behavior, and explicit-delete semantics.
+- Updated `CONTRIBUTING.md` with complete verification commands, benchmark guidance, untrusted-data expectations, safe-message expectations, and accurate PR verification claims.
+- Updated `docs/architecture.md` with domain/data/errors/state/UI/i18n/platform/verification layers, persistence invariants, normalized identity comparison, and security boundaries.
+- Updated `docs/development.md` with all verification/repository/security/benchmark commands and engineering rules.
 - Updated `docs/setup.md` with root/subpath PWA configuration and verification.
-- Updated `docs/release.md` with deployment-base checks, first-visit offline validation, update/cache cleanup checks, and an explicit rule not to tag while release-candidate checks are merely pending or queued.
-- Updated `docs/testing.md` with current regression, property-style, component, static security, cache-isolation, E2E, and PWA scope.
-- Updated `docs/accessibility.md` with dialog naming, onboarding focus/background isolation, modal lifecycle behavior, and persistence alerts.
+- Updated `docs/release.md` with complete verification gates, benchmark/a11y/PWA checks, tag/package matching, SHA-256 release artifacts, and native GitHub CLI publishing.
+- Updated `docs/testing.md` with current regression, deterministic fuzz, migration, component, static security, cache-isolation, release-workflow, E2E, repository check, benchmark, and PWA scope.
+- Updated `docs/accessibility.md` with current-page navigation, dialog naming/focus restoration, onboarding focus/background isolation, transfer busy state, modal lifecycle behavior, and persistence alerts.
+- Updated `docs/performance.md` with the deterministic large-course benchmark workflow.
+- Updated `docs/troubleshooting.md` with grading-profile lifecycle, CSV row/weight validation, browser-storage failure, and PWA cache guidance.
 - Retained the required project/community/security/privacy/architecture/setup/development/testing/release/troubleshooting/accessibility/performance/ADR documentation set.
 
-## Files/modules added or materially changed in this audit
+## Files/modules added or materially changed in the complete audit
 
-### Domain/data/state
+### Domain/data/errors/state
 
 - `src/domain/whatIf.ts`
 - `src/domain/validation.ts`
 - `src/data/schema.ts`
 - `src/data/csv.ts`
 - `src/data/storage.ts`
+- `src/data/backup.ts`
+- `src/data/logger.ts`
+- `src/errors/UserFacingError.ts`
 - `src/state/AppContext.tsx`
 - `src/i18n/en.ts`
 - `src/i18n/system.ts`
+- `src/i18n/settings.ts`
+- `src/i18n/dataTransfer.ts`
 
 ### Application/UI
 
 - `src/main.tsx`
 - `src/App.tsx`
+- `src/navigation.css`
 - `src/pages/WhatIfPage.tsx`
 - `src/pages/DashboardPage.tsx`
 - `src/pages/CoursePage.tsx`
@@ -192,49 +268,86 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 - `src/components/CourseForm.tsx`
 - `index.html`
 
-### Tests
+### Tests and benchmarks
 
 - `tests/whatIf.test.ts`
 - `tests/gradeProperties.test.ts`
 - `tests/schema.test.ts`
+- `tests/schemaScaleNames.test.ts`
 - `tests/csv.test.ts`
+- `tests/csvProperties.test.ts`
 - `tests/storage.test.ts`
+- `tests/migrations.test.ts`
 - `tests/validation.test.ts`
+- `tests/UserFacingError.test.ts`
 - `tests/App.test.tsx`
 - `tests/AppContext.test.tsx`
 - `tests/CourseForm.test.tsx`
 - `tests/CoursePage.test.tsx`
 - `tests/Modal.test.tsx`
+- `tests/SettingsPage.test.tsx`
 - `tests/WhatIfPage.test.tsx`
 - `tests/DataPage.test.tsx`
 - `tests/securityMetadata.test.ts`
 - `tests/serviceWorkerSource.test.ts`
+- `tests/manifest.test.ts`
+- `tests/releaseWorkflow.test.ts`
 - `tests/setup.ts`
 - `e2e/core.spec.ts`
+- `benchmarks/gradeMath.bench.ts`
 
-### PWA/build/automation
+### PWA/build/scripts/automation
 
 - `public/sw.js`
 - `public/manifest.webmanifest`
+- `public/icons/icon-maskable.svg`
 - `vite.config.ts`
+- `vitest.config.ts`
+- `tsconfig.app.json`
 - `package.json`
 - `.env.example`
 - `eslint.config.js`
+- `scripts/check-format.mjs`
+- `scripts/check-secrets.mjs`
+- `scripts/check-links.mjs`
+- `scripts/check-version.mjs`
 - `.github/workflows/ci.yml`
 - `.github/workflows/e2e.yml`
 - `.github/workflows/codeql.yml`
-- `.github/workflows/lockfile-once.yml`
+- `.github/workflows/release.yml`
+- `.github/dependabot.yml`
 
-### Documentation
+The temporary `.github/workflows/lockfile-once.yml` was created during the audit as an attempted network-enabled lockfile workaround and has now been deleted. It must not be restored unless a future continuation has a concrete, verified reason to do so.
+
+### Documentation/community
 
 - `README.md`
 - `CHANGELOG.md`
 - `ROADMAP.md`
 - `SECURITY.md`
+- `PRIVACY.md`
+- `CONTRIBUTING.md`
+- `CODE_OF_CONDUCT.md`
+- `SUPPORT.md`
+- `LICENSE`
 - `docs/setup.md`
+- `docs/development.md`
 - `docs/testing.md`
 - `docs/release.md`
 - `docs/accessibility.md`
+- `docs/architecture.md`
+- `docs/performance.md`
+- `docs/troubleshooting.md`
+- `docs/github-settings.md`
+- `docs/adr/0001-client-only-pwa.md`
+- `docs/adr/0002-hash-routing.md`
+- `docs/adr/0003-storage-versioning.md`
+- `docs/screenshots/README.md`
+- `.github/ISSUE_TEMPLATE/bug_report.yml`
+- `.github/ISSUE_TEMPLATE/feature_request.yml`
+- `.github/pull_request_template.md`
+- `.github/release.yml`
+- `.github/FUNDING.yml`
 - `what_changed.md`
 
 ## Verification
@@ -249,66 +362,69 @@ Previously confirmed toolchain:
 
 Environment limitations encountered during this project session:
 
-- The execution sandbox could not resolve `github.com` for a normal `git clone`.
+- A new clean clone retry of `https://github.com/sanskarIN/gradecraft.git` from the execution sandbox still failed because the sandbox could not resolve `github.com`.
 - npm registry access previously timed out and no useful npm cache was available, so a clean local dependency installation and lockfile generation could not be completed in this sandbox.
-- Because dependencies could not be installed locally, do **not** treat local type/lint/test/build verification as completed.
+- Because dependencies could not be installed locally, do **not** treat local typecheck, typed lint, format, repository checks, coverage tests, benchmark, production build, npm audit, or Playwright verification as completed.
 - Repository changes were applied through the authenticated GitHub connector and inspected from GitHub after writes.
 
-### GitHub Actions
+### Latest GitHub Actions checkpoint before this handoff commit
 
 GitHub Actions is the network-enabled verification path for this audit.
 
-At audited code head `f13b54f0154ca1f5b1c3b40176e1088f19e6c4ff`, the latest head-specific runs inspected were:
+At audited code head `cbf7a6cc6ac5d0b32d75c5db09031da9320bcde1`, PR #2 reported 221 commits over `main` and 90 changed files. The head-specific runs inspected immediately before this handoff update were:
 
-- CI run `32221438583` — `pending` at last inspection.
-- E2E run `32221438590` — `queued` at last inspection.
-- CodeQL run `32221438577` — `pending` at last inspection.
+- CI run `32224906481` — `pending` at last inspection.
+- E2E run `32224906457` — `queued` at last inspection.
+- CodeQL run `32224906465` — `pending` at last inspection.
 
-Earlier rapid-commit runs were superseded by same-ref workflow concurrency cancellation. No passing state is claimed until the latest relevant runs actually conclude successfully. This handoff-document update itself creates a newer branch head and may therefore supersede the run IDs above; the next continuation must inspect the latest head-specific runs rather than assuming these older IDs remain authoritative.
+Earlier rapid-commit runs were superseded by same-ref workflow concurrency cancellation. No passing state is claimed until the latest relevant runs actually conclude successfully. This `what_changed.md` commit itself creates a newer branch head and will create/supersede head-specific workflow runs; the next continuation must inspect the latest PR head rather than treating the IDs above as authoritative after this commit.
 
 ### Lockfile status
 
-- `package-lock.json` was still absent when last checked on `phase6/release-audit` after the additional audit commits.
-- `.github/workflows/lockfile-once.yml` is a temporary branch-only helper that attempts `npm install --package-lock-only --ignore-scripts` on a GitHub runner and commits a generated lockfile using `Sanskar <sanskarin@outlook.in>`.
-- Do not keep this temporary workflow in the final merged release once the lockfile has been generated and verified.
-- Until a verified lockfile exists, CI/release documentation intentionally continues using `npm install`; after the lockfile is committed, switch deterministic installs to `npm ci` in separate meaningful commits.
+- `package-lock.json` is still absent on `phase6/release-audit` at the latest audit inspection.
+- Direct dependencies remain exact-version pinned in `package.json`, but transitive dependency reproducibility is incomplete without a verified lockfile.
+- The temporary `.github/workflows/lockfile-once.yml` workaround was removed because repeated branch pushes did not produce a verified lockfile and the workflow was not appropriate to ship.
+- CI, E2E, release documentation, and README intentionally continue using `npm install` where needed. Do not switch them to `npm ci` until a real `package-lock.json` has been generated from the current `package.json`, inspected, committed, and verified.
 
 ### Commit identity
 
-Raw GitHub commit metadata for previously inspected audit code head `85b67354156034122d2a95aaa51795ec6e1287be` reports both author and committer as:
+Raw GitHub commit metadata previously confirmed audit commits with:
 
 - Name: `Sanskar`
 - Email: `sanskarin@outlook.in`
 
-Connector-created continuation commits use the requested repository identity configuration. Re-check raw metadata on the final merged commit before release if authorship auditing is required.
+The requested commit email has therefore been observed in Git metadata for connector-created audit work. Re-check the final handoff and final merged commit raw metadata before the release tag if authorship auditing is required.
 
 ## Known limitations / open issues
 
-1. **Latest CI/E2E/CodeQL are not yet green.** The branch remains a draft PR and must not be described as fully release-verified until the latest head-specific checks finish successfully.
-2. **No committed `package-lock.json` yet.** Direct dependencies are exact-version pinned, but transitive reproducibility is incomplete until the generated lockfile is committed and verified.
-3. **The temporary lockfile workflow must be removed.** `.github/workflows/lockfile-once.yml` exists only to work around the sandbox's lack of npm network access and should not ship in the final branch after it succeeds.
+1. **Latest CI/E2E/CodeQL are not yet green.** The branch remains a draft PR and must not be described as fully release-verified until the latest final head-specific checks finish successfully.
+2. **No committed `package-lock.json` yet.** Direct dependencies are exact-version pinned, but transitive reproducibility is incomplete until a network-enabled install generates a lockfile for the current dependency graph and that lockfile is committed and verified.
+3. **The local sandbox cannot perform the required clean clone/install verification.** DNS resolution for `github.com` still fails and npm installation previously timed out.
 4. **Real release screenshots are not yet committed.** The README intentionally does not use fake screenshots; capture real UI images only after a verified production build/deployment exists.
-5. **Branch protection and GitHub Discussions are repository settings.** Guidance/configuration exists in the repository, but these settings must be enabled through GitHub repository settings when desired.
-6. **Localization packs beyond English are intentionally roadmap work.** The English catalog/extraction architecture is in place, but translated packs are not part of the 1.0 release candidate.
-7. **No final release tag should be created yet.** Tagging is blocked by the incomplete head-specific quality/security verification above.
-8. **CSP is a client-document baseline, not a substitute for production response headers.** Hosts with HTTP header control should test and deploy a stricter header-based CSP where practical.
+5. **A final clean-checkout release build is not yet verified.** It must include dependency install, all `npm run verify` gates, npm audit, Playwright, and PWA smoke checks from the exact final commit.
+6. **Manual accessibility verification is still required on a verified build.** Keyboard-only use, focus restoration, 200% zoom, reduced motion, light/dark contrast, and at least one screen-reader journey cannot be truthfully claimed from static/source review alone.
+7. **Production response headers are hosting configuration.** The repository has a restrictive client-document CSP/referrer baseline; a host with header control should deploy and test equivalent or stricter response headers.
+8. **Branch protection and GitHub Discussions are repository settings.** Guidance exists in `docs/github-settings.md`, but these settings are not represented by source commits and must be enabled through repository settings when desired.
+9. **Localization packs beyond English, optional semester grouping, a hosted demo link, and real release screenshots remain roadmap items.** They are intentionally not represented as completed 1.0 functionality.
+10. **No final release tag should be created yet.** Tagging is blocked by missing final green verification and lockfile/clean-install evidence.
+11. **PR #2 must remain draft until the latest final head is green.** Do not mark ready, merge, or tag merely because earlier superseded runs passed or because source inspection looks correct.
 
 ## Next exact tasks
 
-1. Read the current PR #2 head SHA after this handoff commit and inspect the latest head-specific CI, E2E, and CodeQL workflow runs.
-2. If any job fails, inspect the failed job output and fix every type, lint, format, unit/integration/component test, build, browser/E2E, audit, or CodeQL failure with a focused regression commit.
-3. Re-check whether `package-lock.json` was generated by the temporary `Lockfile Once` workflow. If it appears, inspect it against current `package.json` before treating it as valid.
-4. Once a valid lockfile exists, delete `.github/workflows/lockfile-once.yml` in its own cleanup commit.
-5. Change CI, E2E, release workflow, setup/release documentation, README install commands, and other deterministic-install instructions from `npm install` to `npm ci` where appropriate, then re-run all head-specific checks.
-6. Perform final clean-checkout verification with the committed lockfile: dependency install, typecheck, lint, format check, secret scan, unit/integration/component coverage, production build, Playwright E2E, `npm audit --audit-level=high`, and CodeQL.
-7. Run a manual accessibility pass on the verified build: keyboard-only onboarding/course/assignment/settings/import-export/dialog flows, focus visibility and return, 200% zoom, reduced motion, both themes, and at least one screen-reader core journey.
-8. Verify production PWA behavior from a clean browser context: first-load worker claim, immediate offline reload, static asset availability, network restoration, new-release navigation shell refresh, GradeCraft-only obsolete-cache deletion, and no interaction with unrelated same-origin cache entries.
-9. Capture real screenshots from the verified production build and add them to `docs/screenshots/`, then update README screenshot references and any release documentation that currently describes them as pending.
-10. Audit documentation links, version references, release instructions, support/contact information, BMC link, MIT license, `Made by the Sanskar`, and repository URLs against the final build.
-11. Mark PR #2 ready for review only after all release-candidate verification evidence is green.
+1. Read the new PR #2 head SHA after this `what_changed.md` commit and inspect the latest head-specific CI, E2E, and CodeQL workflow runs.
+2. If any job fails, inspect failed job output and fix every type, lint, format, docs-link, version-check, secret-scan, unit/integration/component coverage, build, browser/E2E, audit, or CodeQL failure with a focused regression commit.
+3. Generate `package-lock.json` from the **current** `package.json` in a network-enabled clean checkout using an appropriate npm install workflow, inspect it, and commit it as a real repository artifact.
+4. After the lockfile is committed and verified, convert deterministic CI/E2E/release and documented clean-install paths from `npm install` to `npm ci` in focused commits, while keeping `npm install` only where contributors intentionally need dependency resolution/update behavior.
+5. Re-run final clean-checkout verification from the exact release-candidate commit: install, `npm run verify`, `npm run bench` on a reference environment, `npm audit --audit-level=high`, Playwright Chromium E2E, and CodeQL.
+6. Perform manual accessibility verification on the verified production build: keyboard-only onboarding/course/assignment/settings/import-export/dialog flows, active navigation, focus visibility and return, 200% zoom, reduced motion, both themes, and at least one screen-reader core journey.
+7. Verify production PWA behavior from a clean browser context: manifest and any/maskable icons, first-load worker claim, immediate offline reload, static asset availability, network restoration, new-release navigation-shell refresh, GradeCraft-only obsolete-cache deletion, and no interaction with unrelated same-origin cache entries.
+8. Capture real screenshots from the verified production build and add them to `docs/screenshots/`, then update README screenshot references and release documentation.
+9. Run/document the repository-relative Markdown-link checker and release-version checker from the final clean checkout, and manually check external GitHub/BMC/contact links because the offline link checker intentionally does not crawl internet destinations.
+10. Verify the final tag name exactly matches `v${package.json version}` and verify the release workflow publishes both `gradecraft-pwa.zip` and its SHA-256 file.
+11. Mark PR #2 ready for review only after all final release-candidate verification evidence is green.
 12. Merge PR #2 with a strategy that preserves the meaningful atomic commit history rather than squashing it.
 13. After merge, verify the `main` branch workflows from the merged commit.
-14. Only after `main` is green, create the final release tag and verify the generated release artifact and hosted/static PWA smoke tests.
+14. Only after `main` is green, create the final release tag, verify checksum/artifact publication, and complete hosted/static PWA smoke tests.
 15. Close or otherwise retire superseded audit PR #1 only after PR #2 is safely merged and `main` verification is complete.
 
 ## Migration notes
@@ -317,20 +433,20 @@ Connector-created continuation commits use the requested repository identity con
 - This audit tightened validation but did not change the serialized schema shape, so no schema-version increment is required.
 - Existing valid GradeCraft v1 data remains valid.
 - Previously corrupted, unsafe, ambiguous, or internally inconsistent backup data may now be rejected instead of being accepted into application state.
-- Rejection cases now include unsafe/non-hex course colors, impossible due dates, oversized bounded text fields, duplicate/empty IDs, duplicate category names, missing category/scale references, incomplete grading scales, empty scale collections, invalid weighted totals, invalid scores, and courses without categories.
+- Rejection cases include unsafe/non-hex course colors, impossible due dates, malformed persistence timestamps, oversized bounded text fields, duplicate/empty IDs, duplicate category names, duplicate grading-profile names, missing category/scale references, incomplete grading scales, empty scale collections, invalid weighted totals, invalid scores, and courses without categories.
 - Any future persisted shape change must add an explicit migration and migration regression test.
 
 ## Release notes draft
 
-GradeCraft 1.0 provides privacy-first local grade tracking, weighted and points-based grade calculations, custom grading scales, credit-weighted GPA, scenario-aware what-if planning, weighted target-score solving, charts, CSV/JSON portability, responsive themes, accessibility controls, configurable root/subpath PWA deployment, an offline-capable application shell, data-integrity validation, local persistence recovery, browser security metadata, cache ownership isolation, and automated quality/security workflows.
+GradeCraft 1.0 provides privacy-first local grade tracking, weighted and points-based grade calculations, custom grading scales with safe profile lifecycle management, credit-weighted GPA, scenario-aware what-if planning, weighted target-score solving, charts, CSV/JSON portability, responsive themes, accessibility controls, configurable root/subpath PWA deployment, separate any/maskable install icons, an offline-capable application shell, data-integrity validation, local persistence recovery, browser security metadata, cache ownership isolation, and automated quality/security/release workflows.
 
-The Phase 6 audit additionally hardens restored-data invariants, CSV round trips and ambiguous headers, category referential integrity and naming, grading-scale completeness, calendar-date validation, bounded imported/persisted text, safe course-color restoration, blocked-storage behavior, explicit deletion semantics, user-visible persistence failures, stale route/data selections, native dialog lifecycle/accessibility, first-run focus isolation, first-install offline precaching, service-worker cache isolation/update/activation behavior, deployment portability, localization readiness, lint/runtime configuration, dependency patching, deterministic property-style grade tests, and expanded component/browser regression coverage.
+The Phase 6 audit additionally hardens restored-data invariants, normalized category/profile identities, CSV round trips, row counts, quoting and weight conflicts, category referential integrity, grading-scale completeness/lifecycle, canonical persistence timestamps, calendar-date validation, bounded imported/persisted text, safe course-color restoration, blocked-storage behavior, explicit deletion semantics, user-visible persistence failures, safe transfer errors, stale route/data selections, native dialog lifecycle/focus accessibility, current-page navigation semantics, first-run focus isolation, first-install offline precaching, service-worker cache isolation/update/activation behavior, maskable installation assets, deployment portability, localization readiness, lint/runtime configuration, dotenv secret scanning, structured-log redaction, dependency patching, deterministic property/fuzz/benchmark coverage, repository link/version gates, Playwright failure artifacts, and checksum-protected tagged release automation.
 
-This release-candidate text is a draft. Do not state that CI, CodeQL, E2E, npm audit, clean-checkout build, accessibility review, or release verification passed until those checks are actually completed on the final merged code and recorded here.
+This release-candidate text is a draft. Do not state that CI, CodeQL, E2E, npm audit, clean-checkout build, benchmark review, accessibility review, PWA smoke verification, or release verification passed until those checks are actually completed on the final merged code and recorded here.
 
 ## Phase 6 audit commit history — initial audited sequence
 
-The previous handoff explicitly recorded these first 56 meaningful audit commits over `main`:
+The earlier handoff explicitly recorded these first 56 meaningful audit commits over `main`:
 
 1. `a9ee620` — feat: add weighted target score solver
 2. `53926e3` — test: cover weighted target planning
@@ -389,9 +505,9 @@ The previous handoff explicitly recorded these first 56 meaningful audit commits
 55. `f26ef9e` — fix: reject empty persisted entity identifiers
 56. `86fa91b` — test: cover empty restored identifiers and categories
 
-## Phase 6 audit commit history — continued work recorded after the previous handoff
+## Phase 6 audit commit history — continued work from the previous handoff
 
-The following continuation commits are explicitly verified from this session's GitHub writes/inspection. PR #2 reported **128 commits over `main`** at audited code head `f13b54f0154ca1f5b1c3b40176e1088f19e6c4ff`; the PR commit graph is authoritative for any intermediary audit commits not enumerated in the earlier handoff list or this continuation list.
+The previous checkpoint explicitly recorded these continuation commits:
 
 1. `99a46ae` — fix: handle service worker registration failures safely
 2. `f4abeb7` — ci: generate reproducible npm lockfile
@@ -464,7 +580,105 @@ The following continuation commits are explicitly verified from this session's G
 69. `eecf8bd` — docs: record final data and PWA audit fixes
 70. `f13b54f` — docs: cover final regression and cache safety tests
 
-## Earlier baseline commits
+## Phase 6 audit commit history — this continuation
+
+The branch moved from the previous audited code head `f13b54f0154ca1f5b1c3b40176e1088f19e6c4ff` to `cbf7a6cc6ac5d0b32d75c5db09031da9320bcde1` through exactly 93 additional meaningful commits before this handoff commit:
+
+1. `7776fa3` — docs: finalize current GradeCraft audit handoff
+2. `ecd7f6b` — feat: support grading scale deletion action
+3. `e4a2035` — refactor: externalize grading scale management messages
+4. `93122a1` — feat: add safe grading scale deletion controls
+5. `b494fe3` — test: protect grading scale deletion invariants
+6. `7563f0d` — test: cover grading scale deletion controls
+7. `ebd835d` — a11y: expose current primary navigation page
+8. `b1e566c` — style: highlight active primary navigation item
+9. `ac55bb5` — build: load navigation state styles
+10. `909c8a0` — test: expose active primary navigation semantics
+11. `0c7fe8e` — feat: add data and about shortcuts to settings
+12. `99406dc` — test: expose settings data and about shortcuts
+13. `5e5456a` — a11y: restore focus after modal dialogs close
+14. `03a9d0b` — test: verify modal focus restoration
+15. `583926c` — design: add dedicated maskable PWA icon source
+16. `19cd5fa` — build: declare separate any and maskable PWA icons
+17. `979e28c` — build: precache maskable PWA branding asset
+18. `0265584` — test: verify installable PWA manifest metadata
+19. `d63fa1c` — perf: add grade calculation benchmark harness
+20. `ff27119` — build: expose grade calculation benchmark command
+21. `190142a` — docs: document grade calculation benchmark workflow
+22. `def996f` — refactor: add centralized user-facing error type
+23. `5a34cb0` — security: make backup validation errors user safe
+24. `c6534dc` — security: use user-safe CSV validation errors
+25. `2d23a87` — refactor: externalize data transfer fallback errors
+26. `7984139` — security: surface only safe data transfer errors
+27. `f79179e` — test: cover safe backup validation errors
+28. `f153e52` — test: verify safe error message selection
+29. `c674261` — fix: normalize Unicode text for identity comparisons
+30. `605f8dc` — fix: reuse Unicode normalization for CSV category matching
+31. `95b5f9d` — test: cover Unicode-normalized validation identities
+32. `ec5413c` — test: add repository documentation link checker
+33. `c00ec83` — build: include documentation links in verification
+34. `3f8f41f` — ci: verify repository documentation links
+35. `a0fb224` — test: add explicit storage migration coverage
+36. `6d916ba` — test: add deterministic CSV parser fuzz coverage
+37. `ff082ac` — ci: remove ineffective temporary lockfile workflow
+38. `67f83ca` — security: strengthen structured log redaction
+39. `0da4363` — test: cover sensitive log value redaction
+40. `6b8ebd3` — refactor: externalize data transfer loading states
+41. `8394c29` — feat: prevent overlapping data transfer operations
+42. `ea39167` — test: cover data transfer busy state
+43. `e8db4ff` — fix: trim category names before saving courses
+44. `a9f380e` — fix: trim grading profile text before saving
+45. `fb7ae3b` — test: verify trimmed category persistence
+46. `e5d574c` — security: bound CSV assignment import size
+47. `59123b3` — build: include benchmarks in strict TypeScript checks
+48. `28f56cb` — test: cover bounded CSV row imports
+49. `a59ce3e` — test: add release version consistency checker
+50. `43c2169` — build: include release version consistency in verification
+51. `e255351` — ci: verify release version references
+52. `7bae17c` — ci: preserve Playwright failure diagnostics
+53. `9da0581` — security: scan dotenv files for credential patterns
+54. `e491616` — fix: validate canonical ISO persistence timestamps
+55. `12db192` — security: reject malformed persisted timestamps
+56. `3c2d1fd` — test: cover canonical ISO timestamp validation
+57. `199dd06` — test: keep schema invariant fixtures independently valid
+58. `72d61c8` — fix: validate unique grading scale profile names
+59. `db14c59` — security: reject duplicate grading profile names on restore
+60. `212c09f` — feat: prevent duplicate grading profile names
+61. `5327a69` — test: cover grading profile name collisions
+62. `43f90e6` — test: reject duplicate persisted grading profile names
+63. `ae335b8` — test: cover grading profile name integrity
+64. `876e8f2` — security: remove inline script allowance from CSP
+65. `db2178c` — test: verify inline scripts stay blocked by CSP
+66. `bd437a2` — fix: round required score guidance upward
+67. `c413c3b` — fix: show conservative minimum target scores
+68. `fb6cc23` — test: prevent understated target score guidance
+69. `4ce585e` — fix: preserve optional CSV category weight intent
+70. `99156cd` — refactor: externalize CSV weight conflict guidance
+71. `9761be4` — fix: reject conflicting imported category weights
+72. `efb073f` — test: preserve optional CSV weight semantics
+73. `145173e` — test: reject conflicting CSV category weights
+74. `a948498` — test: await terminal CSV conflict status
+75. `8526a76` — docs: record extended Phase 6 hardening
+76. `dd94758` — docs: expand Phase 6 verification coverage
+77. `b62af8e` — docs: record current navigation and focus behavior
+78. `cfed8c7` — docs: strengthen final release gates
+79. `e6d30f7` — docs: refresh hardened release-candidate features
+80. `6390573` — docs: document errors validation and verification layers
+81. `377e309` — docs: mark release hardening refinements complete
+82. `16c3ec5` — docs: align security posture with hardened CSP
+83. `aa48701` — docs: document complete developer verification commands
+84. `1cb8766` — test: include centralized errors in coverage budget
+85. `c90c9e4` — docs: strengthen contributor verification guidance
+86. `e8f620b` — docs: clarify local privacy and recovery behavior
+87. `48c0ffe` — docs: expand storage and import troubleshooting
+88. `642f354` — ci: harden tagged release artifact publishing
+89. `8cb4398` — test: protect release artifact integrity workflow
+90. `ae7e640` — docs: document release checksum publishing
+91. `48660e2` — docs: document release workflow regression coverage
+92. `6c269dd` — security: reject ambiguous CSV quote placement
+93. `cbf7a6c` — test: reject malformed CSV quote placement
+
+## Earlier baseline commits on `main`
 
 - `37a3dcd` — build: configure TypeScript React PWA toolchain
 - `425a827` — feat: define grade domain models and defaults
