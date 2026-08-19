@@ -16,10 +16,12 @@
 
 - [x] Editable existing assignments
 - [x] Undo action for destructive assignment removal
+- [x] Weighted-category target-score solver
+- [x] Deployment-base-aware PWA assets and service worker
+- [x] Centralized English UI message catalog for localization readiness
 - [ ] Localization packs beyond English
 - [ ] Optional semester grouping
 - [ ] Real release screenshots and hosted demo link
-- [ ] Weighted-category target-score solver
 
 ## 2.0 — Optional advanced capabilities
 
