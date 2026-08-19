@@ -1,0 +1,6 @@
+import { readdir,stat } from "node:fs/promises";
+import { extname,join,relative } from "node:path";
+const root="dist",perFileBudgets=new Map([[".js",500*1024],[".css",150*1024]]),totalBudget=750*1024,files=[];
+async function walk(path){for(const entry of await readdir(path,{withFileTypes:true})){const full=join(path,entry.name);if(entry.isDirectory())await walk(full);else files.push(full);}}
+try{await walk(root);}catch{console.error("Bundle budget check requires an existing dist/ directory. Run npm run build first.");process.exit(1);}
+const failures=[];let total=0;for(const file of files){const size=(await stat(file)).size,extension=extname(file);total+=size;const budget=perFileBudgets.get(extension);if(budget!==undefined&&size>budget)failures.push(`${relative(root,file)} is ${(size/1024).toFixed(1)} KiB; budget is ${(budget/1024).toFixed(0)} KiB.`);}if(total>totalBudget)failures.push(`Total dist size is ${(total/1024).toFixed(1)} KiB; budget is ${(totalBudget/1024).toFixed(0)} KiB.`);if(failures.length){console.error(`Bundle budget failed:\n${failures.map((item)=>`- ${item}`).join("\n")}`);process.exit(1);}console.log(`Bundle budget OK: ${files.length} files, ${(total/1024).toFixed(1)} KiB total.`);
