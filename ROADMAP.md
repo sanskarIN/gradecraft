@@ -40,11 +40,22 @@
 - [x] Tag releases gated by verification, dependency audit, and Chromium E2E
 - [x] Release-readiness evidence matrix and final release procedure
 
+## 2.0.12 — Version integrity and release preparation
+
+- [x] Package metadata prepared as 2.0.12
+- [x] Dated 2.0.12 changelog release entry
+- [x] About screen derives application version from `package.json`
+- [x] Hardcoded semantic versions removed from English/Hindi catalogs
+- [x] Package/changelog/handoff/About synchronization gate
+- [x] Version synchronization included in `npm run verify` and CI
+- [x] Release-readiness gate protects the version gate itself
+- [x] 2.0.12 release operator and evidence documentation
+
 ## Remaining publication evidence
 
 - [ ] Capture real screenshots from a positively verified production build.
 - [ ] Publish and verify a hosted demo URL if a public demo is desired.
-- [ ] Record positive clean-checkout/GitHub Actions evidence for the exact release commit before tagging a release.
+- [ ] Record positive clean-checkout/GitHub Actions evidence for the exact 2.0.12 release commit before tagging `v2.0.12`.
 
 These items require an actual runner/browser/deployment and are intentionally not replaced with generated screenshots, mock deployment links, or an assumption that missing status contexts mean success.
 
