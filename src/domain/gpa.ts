@@ -1,0 +1,3 @@
+import { calculateCourseGrade, gradeBandForPercent } from "./gradeMath";
+import type { Course, GpaResult, GradeScaleProfile } from "./types";
+export function calculateGpa(courses:Course[],scales:GradeScaleProfile[]):GpaResult{let qualityPoints=0,attemptedCredits=0;const results=courses.map((course)=>{const scale=scales.find((s)=>s.id===course.scaleId);const band=scale?gradeBandForPercent(calculateCourseGrade(course).percent,scale):null;const points=band?.gpaPoints??null;if(points!==null&&course.creditHours>0){qualityPoints+=points*course.creditHours;attemptedCredits+=course.creditHours;}return{courseId:course.id,points,credits:course.creditHours};});return{gpa:attemptedCredits>0?qualityPoints/attemptedCredits:null,qualityPoints,attemptedCredits,courses:results};}
