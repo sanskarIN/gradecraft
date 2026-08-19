@@ -79,8 +79,10 @@ npm run lint
 npm run format:check
 npm run docs:links
 npm run security:secrets
+npm run release:gate
 npm test
 npm run build
+npm run perf:budget
 npm run test:e2e
 ```
 
@@ -90,15 +92,18 @@ For the combined local quality gate:
 npm run verify
 ```
 
+`verify` includes the static release-readiness gate, deterministic unit/component/property tests, the production build, and bundle-size budgets. Browser E2E and the dependency audit remain explicit release checks so their evidence is visible separately.
+
 ## Build and release
 
 ```bash
 npm install
 npm run verify
-npm run build
+npm run test:e2e
+npm audit --audit-level=high
 ```
 
-The production PWA bundle is emitted to `dist/`. See [`docs/release.md`](docs/release.md).
+The production PWA bundle is emitted to `dist/`. See [`docs/release.md`](docs/release.md) for the release procedure and [`docs/release-readiness.md`](docs/release-readiness.md) for the evidence matrix.
 
 ## Architecture
 
@@ -109,7 +114,7 @@ The production PWA bundle is emitted to `dist/`. See [`docs/release.md`](docs/re
 - `src/components/` — reusable accessible UI primitives
 - `src/pages/` — route-level product experiences
 - `tests/` and `e2e/` — automated verification
-- `scripts/` — repository quality, format, secret, and documentation checks
+- `scripts/` — repository quality, security, release-readiness, documentation, and performance checks
 
 Read [`docs/architecture.md`](docs/architecture.md) and [`docs/adr/`](docs/adr/).
 
