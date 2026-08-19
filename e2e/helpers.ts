@@ -1,0 +1,3 @@
+import type { Page } from "@playwright/test";
+export async function completeOnboarding(page:Page){await page.goto("/");await page.getByRole("button",{name:"Continue"}).click();await page.getByRole("button",{name:"Continue"}).click();await page.getByRole("button",{name:"Start using GradeCraft"}).click();}
+export async function createWeightedCourse(page:Page,name="Algebra",semester="Fall 2026"){await page.getByRole("button",{name:"New course"}).click();const dialog=page.getByRole("dialog");await dialog.getByLabel("Course name").fill(name);await dialog.getByLabel("Course code").fill("MATH 101");await dialog.getByLabel("Semester / term").fill(semester);await dialog.getByRole("button",{name:"Save course"}).click();await page.getByRole("heading",{name}).waitFor();}
