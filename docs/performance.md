@@ -16,4 +16,14 @@ GradeCraft is intentionally client-only and dependency-light.
 - No polling or background analytics.
 - Dashboard search uses memoized in-memory filtering.
 
-Current weighted aggregation is straightforward and suitable for normal student datasets. If datasets grow into thousands of assignments, profile before replacing it with indexed one-pass grouping.
+## Benchmark harness
+
+`benchmarks/gradeMath.bench.ts` exercises point-based and weighted grade calculation with deterministic 10,000-assignment course fixtures. Run it with:
+
+```bash
+npm run bench
+```
+
+Treat benchmark output as environment-specific evidence, not a universal timing guarantee. Compare results on the same machine/runtime when investigating a regression, and profile before changing algorithms. Do not put fragile wall-clock thresholds in the normal correctness test suite.
+
+Current weighted aggregation is straightforward and suitable for normal student datasets. If datasets grow into thousands of assignments, use the benchmark and a profiler before replacing it with indexed one-pass grouping.
