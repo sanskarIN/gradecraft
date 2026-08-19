@@ -19,6 +19,8 @@ Schema version `1` is stored under a namespaced Local Storage key. Each save pre
 
 Backward-compatible optional fields such as `Course.semester` and `Settings.language` do not require a schema-version bump. The schema validator accepts older v1 data where those fields are absent and rejects malformed values when they are present.
 
+The package/application release version is independent from the persisted schema version. GradeCraft 2.0.12 therefore remains compatible with valid schema-v1 data and does not imply a persistence migration.
+
 ## Grade calculation
 
 Grade math remains in `src/domain/gradeMath.ts`. What-if scenarios clone/override temporary scores rather than mutating persisted courses. The weighted target solver models the future assignment inside its selected category and normalizes against active category weight so previously empty target categories can become active correctly.
@@ -27,11 +29,11 @@ Grade math remains in `src/domain/gradeMath.ts`. What-if scenarios clone/overrid
 
 A small hash router avoids requiring server rewrite configuration for static PWA hosts.
 
-## CSV import boundary
+## CSV import/export boundary
 
 CSV text is parsed as untrusted input. Canonical GradeCraft headers work directly, while third-party headers can be mapped to semantic fields. Common aliases are suggested, but the UI stages the file and mapping in memory and does not update a course until required mappings are present and the user confirms import.
 
-The final imported values still pass score/category validation before state mutation. CSV export neutralizes cells beginning with common spreadsheet formula prefixes.
+The final imported values still pass score/category validation before state mutation. CSV export neutralizes cells beginning with spreadsheet formula prefixes (`=`, `+`, `-`, `@`) and control prefixes (tab, carriage return, line feed). GradeCraft's import path recognizes its own neutralization marker so protected assignment/category labels round-trip without silently changing user text.
 
 ## Backup architecture
 
@@ -59,6 +61,22 @@ The application-level error boundary provides a safe recovery UI, while structur
 
 Specialized data-portability copy lives in small locale-aware modules where keeping the main catalog compact improves maintainability. New user-facing strings should be externalized rather than embedded directly in route logic whenever practical.
 
+Application semantic versions are deliberately excluded from localization catalogs. Version text is metadata, not translatable content.
+
+## Version source of truth
+
+`package.json` is the canonical application/release version source. `AboutPage` imports the package version and renders it with the localized application name, so the user-visible version cannot lag behind package metadata because of a stale translation string.
+
+`scripts/check-version-sync.mjs` verifies that:
+
+- the package version is valid semantic versioning,
+- `CHANGELOG.md` contains a dated heading for that version,
+- `what_changed.md` declares the same package version,
+- the About screen remains wired to package metadata, and
+- English/Hindi catalogs do not reintroduce hardcoded GradeCraft semantic-version strings.
+
+See [`adr/0007-package-version-source.md`](adr/0007-package-version-source.md) for the architectural decision.
+
 ## Verification architecture
 
-`npm run verify` composes static typing, linting, repository formatting, documentation-link checking, secret scanning, unit/component coverage, and the production build. Playwright remains a separate browser gate because it starts the production preview server and exercises end-to-end journeys.
+`npm run verify` composes static typing, linting, repository formatting, documentation-link checking, secret scanning, version synchronization, the release-readiness gate, unit/component/property coverage, the production build, and production bundle budgets. Playwright remains a separate browser gate because it starts the production preview server and exercises end-to-end journeys. The release workflow additionally enforces package/tag consistency and the dependency audit before publishing an artifact.
