@@ -9,8 +9,8 @@
 **Pull request:** #2 — `feat: complete weighted planning and release audit`  
 **PR state:** Open, draft, mergeable  
 **Base branch/head:** `main` at `1177bf730c43f0dad1d996ee4b4e3c7df93c7477`  
-**Audited code head immediately before this handoff update:** `3332d7e6045ea772c6a5a5940653ab3ea201a0c4`  
-**PR size at that audited code head:** 224 meaningful commits over `main`, 90 changed files
+**Audited code head immediately before this handoff update:** `c4008056d95c616c11162e57b6322c3bbf5aedbe`  
+**PR size at that audited code head:** 226 meaningful commits over `main`, 91 changed files
 
 This file is the authoritative continuation checkpoint. Do not describe the release as verified until the latest CI, E2E, CodeQL, dependency, build, clean-checkout, PWA, and accessibility evidence is actually green. Historical commit/status sections below are retained for traceability; the **Latest GitHub Actions checkpoint before this handoff commit**, **Known limitations / open issues**, and **Next exact tasks** sections supersede older status statements.
 
@@ -156,7 +156,7 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 - A temporary branch-only lockfile-generation workflow was added earlier to work around sandbox npm-network failure, but repeated branch pushes did not produce a verified `package-lock.json`; the ineffective temporary workflow has now been removed and will not ship.
 - `package-lock.json` remains absent, so deterministic `npm ci` conversion is intentionally blocked until a real network-enabled install can generate and verify the lockfile.
 
-### Release automation
+### Release automation and repository settings guidance
 
 - CI runs typecheck, lint, format verification, documentation links, release-version consistency, secret-pattern scanning, tests with coverage, production build, and high-severity npm audit.
 - E2E installs Playwright Chromium and runs the browser journeys.
@@ -168,6 +168,7 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 - Tagged release publishing uses GitHub's authenticated `gh release create` CLI instead of the previous third-party `softprops/action-gh-release` action.
 - Release documentation explicitly instructs verifying the published archive against the checksum file before distribution.
 - Added static release-workflow tests protecting tag/version matching, checksum generation, and native GitHub CLI publishing.
+- Updated `docs/github-settings.md` to align recommended `main` protection checks with the current CI/E2E/CodeQL workflows, prohibit treating superseded/pending checks as final-head evidence, recommend security settings, and document release checksum expectations.
 
 ### Testing
 
@@ -227,6 +228,7 @@ This file is the authoritative continuation checkpoint. Do not describe the rele
 - Updated `docs/accessibility.md` with current-page navigation, dialog naming/focus restoration, onboarding focus/background isolation, transfer busy state, modal lifecycle behavior, and persistence alerts.
 - Updated `docs/performance.md` with the deterministic large-course benchmark workflow.
 - Updated `docs/troubleshooting.md` with grading-profile lifecycle, CSV row/weight validation, browser-storage failure, and PWA cache guidance.
+- Updated `docs/github-settings.md` with current required-check guidance, security settings, discussions guidance, and release-integrity expectations.
 - Retained the required project/community/security/privacy/architecture/setup/development/testing/release/troubleshooting/accessibility/performance/ADR documentation set.
 
 ## Files/modules added or materially changed in the complete audit
@@ -372,11 +374,11 @@ Environment limitations encountered during this project session:
 
 GitHub Actions is the network-enabled verification path for this audit.
 
-At audited code head `3332d7e6045ea772c6a5a5940653ab3ea201a0c4`, PR #2 reported 224 commits over `main` and 90 changed files. The head-specific runs inspected immediately before this handoff update were:
+At audited code head `c4008056d95c616c11162e57b6322c3bbf5aedbe`, PR #2 reported 226 commits over `main` and 91 changed files. The head-specific runs inspected immediately before this handoff update were:
 
-- CI run `32225364811` — `pending` at last inspection.
-- E2E run `32225364826` — `queued` at last inspection.
-- CodeQL run `32225364816` — `pending` at last inspection.
+- CI run `32225578984` — `pending` at last inspection.
+- E2E run `32225579251` — `pending` at last inspection.
+- CodeQL run `32225579066` — `pending` at last inspection.
 
 Earlier rapid-commit runs were superseded by same-ref workflow concurrency cancellation. No passing state is claimed until the latest relevant runs actually conclude successfully. This `what_changed.md` commit itself creates a newer branch head and will create/supersede head-specific workflow runs; the next continuation must inspect the latest PR head rather than treating the IDs above as authoritative after this commit.
 
@@ -441,7 +443,7 @@ The requested commit email has therefore been observed in Git metadata for conne
 
 GradeCraft 1.0 provides privacy-first local grade tracking, weighted and points-based grade calculations, custom grading scales with safe profile lifecycle management, credit-weighted GPA, scenario-aware what-if planning, weighted target-score solving, charts, CSV/JSON portability, responsive themes, accessibility controls, configurable root/subpath PWA deployment, separate any/maskable install icons, an offline-capable application shell, data-integrity validation, local persistence recovery, browser security metadata, cache ownership isolation, and automated quality/security/release workflows.
 
-The Phase 6 audit additionally hardens restored-data invariants, normalized category/profile identities, CSV round trips, row counts, quoting and weight conflicts, category referential integrity, grading-scale completeness/lifecycle, canonical persistence timestamps, calendar-date validation, bounded imported/persisted text, safe course-color restoration, blocked-storage behavior, explicit deletion semantics, user-visible persistence failures, safe transfer errors, stale route/data selections, native dialog lifecycle/focus accessibility, current-page navigation semantics, first-run focus isolation, first-install offline precaching, service-worker cache isolation/update/activation behavior, maskable installation assets, deployment portability, localization readiness, lint/runtime configuration, dotenv secret scanning, structured-log redaction, dependency patching, deterministic property/fuzz/benchmark coverage, repository link/version gates, Playwright failure artifacts, and checksum-protected tagged release automation.
+The Phase 6 audit additionally hardens restored-data invariants, normalized category/profile identities, CSV round trips, row counts, quoting and weight conflicts, category referential integrity, grading-scale completeness/lifecycle, canonical persistence timestamps, calendar-date validation, bounded imported/persisted text, safe course-color restoration, blocked-storage behavior, explicit deletion semantics, user-visible persistence failures, safe transfer errors, stale route/data selections, native dialog lifecycle/focus accessibility, current-page navigation semantics, first-run focus isolation, first-install offline precaching, service-worker cache isolation/update/activation behavior, maskable installation assets, deployment portability, localization readiness, lint/runtime configuration, dotenv secret scanning, structured-log redaction, dependency patching, deterministic property/fuzz/benchmark coverage, repository link/version gates, Playwright failure artifacts, repository-settings guidance, and checksum-protected tagged release automation.
 
 This release-candidate text is a draft. Do not state that CI, CodeQL, E2E, npm audit, clean-checkout build, benchmark review, accessibility review, PWA smoke verification, or release verification passed until those checks are actually completed on the final merged code and recorded here.
 
@@ -583,7 +585,7 @@ The previous checkpoint explicitly recorded these continuation commits:
 
 ## Phase 6 audit commit history — this continuation
 
-The branch moved from the previous audited code head `f13b54f0154ca1f5b1c3b40176e1088f19e6c4ff` to `3332d7e6045ea772c6a5a5940653ab3ea201a0c4` through exactly 96 additional meaningful commits before this handoff commit:
+The branch moved from the previous audited code head `f13b54f0154ca1f5b1c3b40176e1088f19e6c4ff` to `c4008056d95c616c11162e57b6322c3bbf5aedbe` through exactly 98 additional meaningful commits before this handoff commit:
 
 1. `7776fa3` — docs: finalize current GradeCraft audit handoff
 2. `ecd7f6b` — feat: support grading scale deletion action
@@ -681,6 +683,8 @@ The branch moved from the previous audited code head `f13b54f0154ca1f5b1c3b40176
 94. `91ca638` — docs: record complete continued GradeCraft audit handoff
 95. `e776caf` — docs: record release integrity and strict CSV parsing
 96. `3332d7e` — docs: align checksum verification wording with workflow
+97. `4d31c12` — docs: finalize continued GradeCraft verification handoff
+98. `c400805` — docs: align branch protection checks with current workflows
 
 ## Earlier baseline commits on `main`
 
