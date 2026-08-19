@@ -1,0 +1,3 @@
+import { readFileSync } from "node:fs";import { describe,expect,it } from "vitest";
+const source=readFileSync(new URL("../public/sw.js",import.meta.url),"utf8");
+describe("service worker source safety",()=>{it("scopes cache cleanup to GradeCraft-owned caches",()=>{expect(source).toContain('const CACHE_PREFIX="gradecraft-"');expect(source).toContain("key.startsWith(CACHE_PREFIX)&&key!==CACHE");});it("limits fetch handling to same-origin requests inside the worker scope",()=>{expect(source).toContain("url.origin!==self.location.origin");expect(source).toContain("!url.href.startsWith(SCOPE)");});});
