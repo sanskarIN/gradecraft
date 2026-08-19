@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+<title id="title">GradeCraft logo</title><rect width="512" height="512" rx="112" fill="#4f46e5"/>
+<path d="M112 172 256 92l144 80-144 80-144-80Z" fill="#fff"/>
+<path d="M156 224v92c0 42 48 76 100 76s100-34 100-76v-92l-100 56-100-56Z" fill="#c7d2fe"/>
+<path d="M400 176v126" stroke="#fff" stroke-width="22" stroke-linecap="round"/><circle cx="400" cy="324" r="18" fill="#fff"/></svg>

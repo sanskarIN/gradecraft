@@ -1,0 +1,1 @@
+export const en={appName:"GradeCraft",tagline:"Know where you stand. Plan where you want to go.",madeBy:"Made by the Sanskar",emptyCourses:"No courses yet",emptyCoursesHint:"Create your first course to start tracking grades privately on this device.",offline:"You are offline. GradeCraft will keep working with local data."} as const;

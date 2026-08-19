@@ -1,0 +1,5 @@
+import { useEffect,useState } from "react";
+export type Route={page:"dashboard"}|{page:"course";id:string}|{page:"what-if";id?:string}|{page:"gpa"}|{page:"data"}|{page:"settings"}|{page:"about"};
+function parseHash(hash:string):Route{const path=hash.replace(/^#\/?/,"");const[first,second]=path.split("/");if(first==="course"&&second)return{page:"course",id:second};if(first==="what-if")return second?{page:"what-if",id:second}:{page:"what-if"};if(first==="gpa")return{page:"gpa"};if(first==="data")return{page:"data"};if(first==="settings")return{page:"settings"};if(first==="about")return{page:"about"};return{page:"dashboard"};}
+export function useHashRoute():Route{const[route,setRoute]=useState(()=>parseHash(window.location.hash));useEffect(()=>{const update=()=>setRoute(parseHash(window.location.hash));window.addEventListener("hashchange",update);return()=>window.removeEventListener("hashchange",update);},[]);return route;}
+export function navigate(path:string):void{window.location.hash=path;}
