@@ -18,7 +18,7 @@
 16. Capture real screenshots only from the verified release candidate and place them under `docs/screenshots/` before referencing them as release evidence.
 17. Tag `vX.Y.Z` and push the tag only after the release-candidate checks are green. The tag must exactly match the `package.json` version as `vX.Y.Z`.
 18. The release workflow runs the full verification and high-severity dependency audit, packages the root-hosted PWA as `gradecraft-pwa.zip`, generates `gradecraft-pwa.zip.sha256`, and publishes both files with GitHub's authenticated `gh` CLI.
-19. Verify the published SHA-256 checksum before distributing or mirroring the archive.
+19. Verify the published archive against the published SHA-256 file before distributing or mirroring it, for example with `sha256sum -c gradecraft-pwa.zip.sha256` on a compatible system.
 20. Smoke-test the hosted/static deployment and PWA install/offline behavior.
 
 For a subpath artifact, build separately with the deployment value set before `npm run build` and publish that `dist/` output to the matching subpath.
