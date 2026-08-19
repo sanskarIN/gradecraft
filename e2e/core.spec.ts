@@ -1,0 +1,2 @@
+import { expect,test } from "@playwright/test";
+test("first run can reach dashboard",async({page})=>{await page.goto("/");await expect(page.getByRole("heading",{name:"Welcome to GradeCraft"})).toBeVisible();await page.getByRole("button",{name:"Continue"}).click();await page.getByRole("button",{name:"Continue"}).click();await page.getByRole("button",{name:"Start using GradeCraft"}).click();await expect(page.getByRole("heading",{name:"Your courses"})).toBeVisible();await expect(page.getByRole("button",{name:"New course"})).toBeVisible();});
