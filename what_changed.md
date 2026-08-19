@@ -3,63 +3,66 @@
 ## Current milestone
 
 **Package version:** 2.0.12  
-**Release state:** 2.0.12 release-candidate metadata and final repository hardening prepared; positive clean-runner/browser evidence is still required before tagging  
+**Release state:** final repository hardening is on `main`; a dedicated PR is being used to obtain positive network-enabled CI/E2E/audit evidence before tagging  
 **Date:** 2026-08-19
 
 ## Completed product scope
 
 GradeCraft is a privacy-first TypeScript + React PWA with weighted and points grading, custom courses/categories/assignments/scales, GPA, what-if planning, weighted target-score solving, semester organization/search, charts, English/Hindi localization, local persistence/recovery, JSON and CSV portability, encrypted backup files, PWA offline support, accessibility preferences, responsive layouts, and open-source project/community documentation.
 
-The repository includes unit/domain/data/component/property tests, Playwright browser journeys, CI, E2E, CodeQL, Dependabot, release automation, documentation-link checks, secret checks, release-readiness checks, version synchronization, production bundle budgets, release tag validation, coverage artifacts, and Playwright diagnostics.
+The repository includes unit/domain/data/component/property tests, Playwright browser journeys, CI, E2E, CodeQL, Dependabot, release automation, documentation-link checks, secret checks, release-readiness checks, version synchronization, production bundle budgets, release-tag validation, coverage artifacts, and Playwright diagnostics.
 
 ## Version 2.0.12 continuation
 
-- Fixed the About screen so it no longer depends on a hardcoded `GradeCraft 1.0.0` localization value.
-- The About screen now derives its displayed application version directly from `package.json`.
-- Removed hardcoded semantic-version strings from the English and Hindi message catalogs.
-- Added `scripts/check-version-sync.mjs` and `npm run version:check`.
-- The version gate checks semantic-version validity, a dated matching `CHANGELOG.md` release heading, this handoff's package version, package-derived About version wiring, and absence of hardcoded GradeCraft semantic versions in localization catalogs.
-- Added `version:check` to `npm run verify` and the CI workflow.
-- Expanded `release:gate` so the version-check file, script, and CI invocation are required release infrastructure.
-- Prepared package/changelog/handoff metadata atomically for **2.0.12** so `main` never contained a partially bumped release state.
-- Updated README, development, release-readiness, release process, roadmap, and changelog documentation for the 2.0.12 workflow.
-- Hardened CSV spreadsheet-export neutralization so tab, carriage-return, and line-feed prefixes are protected in addition to `=`, `+`, `-`, and `@`.
-- Preserved GradeCraft CSV round trips for those protected control-prefixed labels.
-- Added focused CSV regression coverage and extended deterministic property coverage with tab/newline/carriage-return prefix cases.
-- Updated `SECURITY.md` and the 2.0.12 changelog with the expanded CSV boundary protection.
+- Prepared package/changelog/handoff metadata atomically for **2.0.12**.
+- Fixed the About screen to derive its application version from `package.json` rather than a hardcoded translation value.
+- Removed semantic-version literals from English/Hindi catalogs.
+- Added `scripts/check-version-sync.mjs`, `npm run version:check`, CI integration, and release-gate protection for the version infrastructure.
+- Updated README, development, testing, architecture, release-readiness, release process, roadmap, changelog, and security documentation for the 2.0.12 workflow.
+- Added ADR 0007 documenting `package.json` as the single application-version source and explicitly separating package version from persistence-schema version.
+- Hardened CSV spreadsheet-export neutralization for `=`, `+`, `-`, `@`, tab, carriage-return, and line-feed prefixes while preserving protected label round trips.
+- Added focused CSV regression coverage plus deterministic property cases for the expanded prefix set.
+- Updated the release gate so ADR 0007 is required release infrastructure.
 
-## Existing final-audit safeguards retained in 2.0.12
+## CI blocker discovered and fixed
 
-- Documentation links are verified locally and in CI.
-- The release-readiness gate checks required files, scripts, community files, PWA files, CI wiring, release wiring, and project identity/support markers.
-- Production JavaScript/CSS/total bundle sizes are subject to executable budgets.
-- Release tags must match `package.json` exactly.
-- Tag releases run the full verification suite, dependency audit, Chromium E2E against the already verified production build, retain diagnostics, and package only after gates pass.
-- Deterministic property coverage exercises generated grade calculations, target-score solvers, and CSV edge-label round trips.
+A PR-triggered GitHub Actions run on Dependabot PR #4 provided network-enabled evidence that the previous ESLint configuration was a real release blocker:
 
-## Verification evidence from this 2.0.12 continuation
+- dependency installation succeeded,
+- TypeScript checking succeeded,
+- ESLint failed before the remaining CI gates,
+- typed project-service parsing was incorrectly applied to JS/MJS files outside the TypeScript projects (`eslint.config.js`, `public/sw.js`, and repository scripts), and
+- `react-refresh/only-export-components` produced an intentional AppContext warning that was fatal because lint runs with `--max-warnings=0`.
 
-Dependency-free checks performed in the available execution environment:
+The current `main` fix scopes type-aware rules to `*.ts`/`*.tsx`, gives Node/service-worker JavaScript explicit globals, keeps normal recommended JavaScript linting, and disables only the known React-refresh false positive for `src/state/AppContext.tsx`. The corrected config passed a direct Node syntax check.
 
-- TypeScript compilation of the `import { version as appVersion } from "../../package.json"` pattern passed with `moduleResolution: "Bundler"` and `resolveJsonModule: true`, matching GradeCraft's application TypeScript configuration.
-- The new version-synchronization script passed a 2.0.12 fixture.
-- The version-synchronization script correctly rejected a fixture that reintroduced `GradeCraft 1.0.0` into a localization catalog.
-- The existing release-tag script accepted `v2.0.12` for package version `2.0.12`.
-- The release-tag script correctly rejected mismatched `v2.0.13` and reported the expected `v2.0.12` tag.
-- The hardened current CSV implementation was compiled and executed in an isolated harness.
-- That harness passed **9 hardened CSV label round trips**, covering `=`, `+`, `-`, `@`, tab, line-feed, carriage-return, apostrophe, and Hindi Unicode labels.
+## Dependency/security evidence discovered
 
-Prior final-audit evidence also remains relevant:
+The same network-enabled PR installation reported **8 npm audit findings: 2 low, 1 moderate, 3 high, and 2 critical** on the older dependency set represented by that PR merge base. That run stopped at lint before its explicit `npm audit --audit-level=high` step, so it is not sufficient evidence to identify which final 2.0.12 dependency changes resolve every high/critical advisory.
 
-- A dependency-free grade/CSV harness passed **200 generated grade cases**, **100 feasible points-target cases**, **3 weighted-target cases**, and the earlier CSV edge-label suite.
-- The property-test surface passed isolated strict TypeScript compilation.
-- Standalone release-tag, bundle-budget, and release-readiness fixture checks behaved correctly for pass and fail cases.
+Several Dependabot PRs remain open, including React/React DOM same-major updates and major Vite, TypeScript, ESLint, and Vitest/tooling updates. These are not being blindly merged into 2.0.12. Their PR-triggered CI/E2E evidence must be evaluated against the corrected current main baseline first.
 
-These checks are useful deterministic evidence but do not replace the full dependency-backed verification for the exact latest 2.0.12 commit.
+## Repository maintenance cleanup
+
+- Closed stale audit PR #1 as superseded by the completed direct-main audit work.
+- Closed stale draft audit PR #2 as superseded by current `main` and 2.0.12 release preparation.
+- Latest audited open-issue search: **none**.
+- Final code search found no `TODO`, no `FIXME`, no `not implemented` marker, and no stale `GradeCraft 1.0.0` reference.
+- Remaining open PRs are dependency-maintenance PRs, not unfinished product-feature PRs.
+
+## Deterministic evidence from this continuation
+
+- The package-version JSON import pattern used by About compiled under GradeCraft's Bundler/JSON TypeScript settings.
+- Version synchronization passed a valid 2.0.12 fixture and rejected a fixture that reintroduced `GradeCraft 1.0.0` into a locale catalog.
+- Release-tag validation accepted `v2.0.12` and rejected mismatched `v2.0.13`.
+- The hardened CSV implementation passed an isolated compiled round-trip harness for formula prefixes, tab/LF/CR prefixes, apostrophes, and Hindi Unicode.
+- Prior deterministic harness evidence remains: **200 generated grade cases**, **100 feasible points-target cases**, **3 weighted-target cases**, and the earlier CSV edge-label suite.
+
+These checks do not replace positive dependency-backed verification for the exact final candidate.
 
 ## Exact 2.0.12 release gates
 
-Run from a clean network-enabled checkout:
+From a clean network-enabled checkout:
 
 ```bash
 npm install
@@ -70,28 +73,17 @@ npm audit --audit-level=high
 npm run release:tag -- v2.0.12
 ```
 
-Do not label the exact 2.0.12 candidate green until these checks and the corresponding GitHub Actions/CodeQL evidence are positively visible.
+The dedicated `audit/2.0.12-final-ci` PR exists specifically to expose PR-triggered CI/E2E/CodeQL evidence for the corrected current baseline. Do not tag 2.0.12 until high/critical dependency findings are resolved and all required checks are positively green.
 
-## CI evidence limitation
+## Remaining release work
 
-- The connected direct-push workflow-run surface does not expose the current Actions run list.
-- The latest combined-status query returned no status contexts.
-- An empty workflow/status response is **not** treated as success evidence.
-
-## Remaining external publication work
-
-1. Inspect positive CI, E2E, CodeQL, dependency-audit, version-sync, release-gate, and bundle-budget results for the exact 2.0.12 release commit.
-2. Capture real screenshots from the positively verified production build and place them in `docs/screenshots/`.
-3. Publish a hosted demo only if desired and only after smoke-testing that exact deployment.
-4. Confirm repository settings such as branch protection/Discussions separately if desired.
-5. Generate and commit a trustworthy npm lockfile from a network-enabled dependency resolution if reproducible transitive dependency locking is desired; the current execution environment could not complete `npm install --package-lock-only`, so no lockfile was fabricated.
-
-Items 1-4 are release evidence/settings work. Item 5 is a reproducibility improvement that requires a successful registry-backed dependency resolution; it is intentionally left explicit instead of committing an invented lockfile.
-
-## Open issues
-
-- Latest audited open-issue search: **none**.
-- No known blocker/critical product defect remains from the repository audit.
+1. Obtain positive CI/E2E/CodeQL evidence on the corrected current baseline.
+2. Identify and resolve every high/critical npm advisory using compatible dependency updates; do not merge major toolchain upgrades solely because Dependabot opened them.
+3. Re-run the full quality, E2E, audit, version, release, and performance gates after dependency changes.
+4. Generate a trustworthy npm lockfile from the successful network-backed dependency resolution; no lockfile is fabricated in the restricted execution environment.
+5. Capture real screenshots from that positively verified production build.
+6. Publish and smoke-test a hosted demo only if desired.
+7. Confirm repository settings such as branch protection/Discussions separately if desired.
 
 ## Migration notes
 
@@ -99,25 +91,4 @@ Application schema version remains `1`. Package version 2.0.12 does not require 
 
 ## 2.0.12 release notes draft
 
-GradeCraft 2.0.12 packages the completed privacy-first grade-management experience with weighted target planning, semester organization/search, English/Hindi localization, authenticated portable backups, staged flexible CSV import, stronger data-integrity safeguards, hardened spreadsheet export boundaries, subpath-safe PWA updates, expanded automated tests, executable release/performance/version gates, diagnostic CI artifacts, tag/version enforcement, and package-derived user-visible versioning protected by a synchronization gate.
-
-## Recent 2.0.12 preparation commits
-
-- `297a12f` — fix: derive About version from package metadata
-- `d381f5f` — refactor: remove hardcoded English app version
-- `151eae9` — refactor: remove hardcoded Hindi app version
-- `2ea1ba4` — build: add package version synchronization gate
-- `1afe748` — build: enforce version synchronization during verification
-- `61b2c16` — ci: enforce version synchronization
-- `8d5134c` — build: require version gate in release readiness
-- `2d9fe01` — release: prepare GradeCraft 2.0.12 metadata
-- `71242d1` — docs: document 2.0.12 version synchronization workflow
-- `54b1d8e` — docs: add 2.0.12 version gates to release readiness
-- `e1bbfcd` — docs: finalize 2.0.12 release operator checklist
-- `b28729e` — docs: expose version synchronization in project README
-- `2dce6b7` — docs: mark 2.0.12 version integrity complete
-- `9c6e79f` — security: harden CSV formula neutralization prefixes
-- `8235fcc` — test: cover control-prefixed CSV formula defenses
-- `a592e03` — test: extend CSV property coverage to control prefixes
-- `dfa6593` — docs: document hardened CSV prefix neutralization
-- `d21a2db` — docs: record 2.0.12 CSV hardening
+GradeCraft 2.0.12 packages the completed privacy-first grade-management experience with weighted target planning, semester organization/search, English/Hindi localization, authenticated portable backups, staged flexible CSV import, stronger data-integrity and spreadsheet-export safeguards, subpath-safe PWA updates, expanded automated tests, executable release/performance/version gates, diagnostic CI artifacts, package/tag enforcement, package-derived user-visible versioning, and corrected TypeScript-aware ESLint scoping. Final release remains blocked until the network-enabled dependency audit is clean at the configured high-severity threshold and all CI/E2E gates pass.
