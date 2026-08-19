@@ -1,0 +1,3 @@
+import { readFileSync } from "node:fs";import { describe,expect,it } from "vitest";
+const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+describe("browser security metadata",()=>{it("ships a restrictive client-side content security policy",()=>{expect(html).toContain('http-equiv="Content-Security-Policy"');expect(html).toContain("default-src 'self'");expect(html).toContain("object-src 'none'");expect(html).toContain("base-uri 'none'");expect(html).toContain("worker-src 'self'");});it("does not leak navigation referrers",()=>{expect(html).toContain('name="referrer" content="no-referrer"');});});
