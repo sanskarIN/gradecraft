@@ -26,6 +26,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run format:check
+      - run: npm run docs:links
       - run: npm run security:secrets
       - run: npm test
       - run: npm run build
