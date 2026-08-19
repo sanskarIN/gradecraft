@@ -1,20 +1,24 @@
 ## Summary
 
-Describe the user-visible and technical changes.
+<!-- What changed and why? -->
 
-## Verification
+## Verification actually performed
 
-- [ ] Typecheck
-- [ ] Lint
-- [ ] Format check
-- [ ] Unit/integration tests
-- [ ] Build
-- [ ] E2E (when applicable)
+- [ ] `npm run verify`
+- [ ] `npm run test:e2e`
+- [ ] `npm audit --audit-level=high`
+- [ ] Relevant benchmark/manual PWA checks when applicable
 
-## Quality review
+Do not mark queued, pending, cancelled, skipped, unavailable, or earlier-head checks as passing evidence for the final PR head.
 
-- [ ] Added/updated tests
-- [ ] Checked keyboard/accessibility impact
-- [ ] Checked privacy/security impact
-- [ ] Updated docs/changelog when needed
-- [ ] No secrets or real student data included
+## Accessibility
+
+<!-- Keyboard, focus, zoom, reduced motion, screen reader, contrast impact. -->
+
+## Privacy / security
+
+<!-- Imported/untrusted data, persistence, CSP, secrets, dependency or release impact. -->
+
+## UI evidence
+
+<!-- Add real screenshots only from a verified build when the change is visual. -->
