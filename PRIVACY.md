@@ -6,7 +6,7 @@ GradeCraft is designed to work without an account or application backend.
 
 Course names, codes, optional semester/term labels, categories, assignment scores, grade scales, appearance/accessibility/language preferences, and backup metadata are stored in the browser's Local Storage on the device/profile where GradeCraft runs.
 
-GradeCraft also keeps a local recovery copy of the previous valid state so it can fall back if the primary Local Storage record becomes unreadable.
+GradeCraft also keeps a local recovery copy of the previous valid state so it can fall back if the primary Local Storage record becomes unreadable. When a valid recovery snapshot is used, GradeCraft repairs the primary record before normal autosave continues. If neither primary nor recovery data is valid, the corrupt records are cleared before a clean default state is initialized.
 
 ## Data transmission
 
@@ -20,13 +20,15 @@ JSON backups and CSV files are processed in the browser. Standard JSON and CSV e
 
 CSV imports are staged in memory while you review detected column mappings. Imported rows are written to the selected local course only after you confirm the mapping workflow.
 
+Backup restore parses or decrypts the selected file first and then asks for confirmation before replacing the current local dataset. Cancelling that confirmation leaves the current dataset unchanged.
+
 Once an unencrypted export is downloaded, that file is controlled by you and by the storage location where you save it.
 
 ## Optional encrypted backups
 
 GradeCraft can create an optional encrypted backup file in the browser. The backup payload is protected with authenticated AES-GCM encryption. A key is derived from the passphrase using PBKDF2-SHA-256 with a randomized salt; each export also uses a randomized IV.
 
-The passphrase is entered into the current page and is not written to GradeCraft Local Storage, included in the backup file, sent to a GradeCraft server, or recoverable by the project. Losing the passphrase makes that encrypted backup unrecoverable.
+The passphrase is entered into the current page and is not written to GradeCraft Local Storage, included in the backup file, sent to a GradeCraft server, or recoverable by the project. Successful encrypted export/restore operations clear the passphrase fields from the current form state. Losing the passphrase makes that encrypted backup unrecoverable.
 
 The encrypted file contains encryption metadata, salt, IV, iteration count, and ciphertext. It does not contain the passphrase. You may save or transfer that encrypted file using any storage provider you choose; GradeCraft does not receive that provider's credentials.
 
@@ -36,7 +38,9 @@ GradeCraft does not send application logs to a telemetry backend. Diagnostic con
 
 ## Deletion
 
-Settings → **Delete all local data** removes GradeCraft's primary and recovery records from Local Storage. Browser-level backups, synced browser profiles, downloaded exports, files copied to third-party storage, or operating-system backups are outside GradeCraft's control.
+Settings → **Delete all local data** clears the user's current GradeCraft dataset and recovery snapshot. Because the application remains open, a fresh empty/default GradeCraft state may then be initialized and persisted so the app can continue functioning. This fresh state does not contain the deleted courses or assignments.
+
+Browser-level backups, synced browser profiles, downloaded exports, files copied to third-party storage, or operating-system backups are outside GradeCraft's control.
 
 ## Contact
 
