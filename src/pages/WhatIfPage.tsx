@@ -1,3 +1,115 @@
-import { useMemo,useState } from "react";
-import { calculateWhatIf,requiredPointsScore,type ScoreOverrides } from "../domain/whatIf";import { useApp } from "../state/AppContext";import { Button } from "../components/Button";import { Card } from "../components/Card";import { EmptyState } from "../components/EmptyState";import { GradeRing } from "../components/GradeRing";import { navigate } from "../hooks/useHashRoute";
-export function WhatIfPage({id}:{id?:string}){const{data}=useApp();const[courseId,setCourseId]=useState(id??data.courses[0]?.id??""),[overrides,setOverrides]=useState<ScoreOverrides>({}),[target,setTarget]=useState(90),[futureMax,setFutureMax]=useState(100);const course=data.courses.find((item)=>item.id===courseId),result=useMemo(()=>course?calculateWhatIf(course,overrides):null,[course,overrides]),required=course?requiredPointsScore(course,target,futureMax):null;if(data.courses.length===0)return <EmptyState title="No courses to plan" description="Create a course before using what-if planning." action={<Button onClick={()=>navigate("/dashboard")}>Create a course</Button>}/>;return <div className="page-stack"><div className="page-heading"><div><p className="eyebrow">Scenario planner</p><h1>What-if scores</h1><p>Preview changes without saving them to your real grades.</p></div></div><label className="select-course">Course<select value={courseId} onChange={(e)=>{setCourseId(e.target.value);setOverrides({});}}>{data.courses.map((item)=><option value={item.id} key={item.id}>{item.name}</option>)}</select></label>{course&&result&&<><div className="hero-grid"><Card><GradeRing value={result.percent} label="Scenario grade"/></Card><Card title="How it works"><p>Change any score below. GradeCraft recalculates instantly and keeps the scenario temporary.</p><Button variant="secondary" onClick={()=>setOverrides({})}>Reset scenario</Button></Card></div><Card title="Try different scores"><div className="table-wrap"><table><thead><tr><th>Assignment</th><th>Actual</th><th>What-if score</th><th>Maximum</th></tr></thead><tbody>{course.assignments.map((assignment)=><tr key={assignment.id}><td>{assignment.name}</td><td>{assignment.score}</td><td><input aria-label={`What-if score for ${assignment.name}`} type="number" min="0" max={assignment.maxScore} step="0.01" value={overrides[assignment.id]??assignment.score} onChange={(e)=>setOverrides((current)=>({...current,[assignment.id]:Math.min(assignment.maxScore,Math.max(0,Number(e.target.value)))}))}/></td><td>{assignment.maxScore}</td></tr>)}</tbody></table></div></Card>{course.mode==="points"&&<Card title="Target score calculator"><div className="form-grid"><label>Target course %<input type="number" min="0" max="100" value={target} onChange={(e)=>setTarget(Number(e.target.value))}/></label><label>Future assignment maximum<input type="number" min="0.01" value={futureMax} onChange={(e)=>setFutureMax(Number(e.target.value))}/></label></div><p className="callout">{required===null?"Enter valid values.":required<0?"You already exceed this target.":required>futureMax?`You would need ${required.toFixed(1)} / ${futureMax}, which is above the available points.`:`You need at least ${required.toFixed(1)} / ${futureMax} to reach ${target.toFixed(1)}%.`}</p></Card>}</>}</div>;}
+import { useMemo, useState } from "react";
+import {
+  calculateWhatIf,
+  requiredPointsScore,
+  requiredWeightedScore,
+  type ScoreOverrides,
+} from "../domain/whatIf";
+import { useApp } from "../state/AppContext";
+import { Button } from "../components/Button";
+import { Card } from "../components/Card";
+import { EmptyState } from "../components/EmptyState";
+import { GradeRing } from "../components/GradeRing";
+import { navigate } from "../hooks/useHashRoute";
+
+export function WhatIfPage({ id }: { id?: string }) {
+  const { data } = useApp();
+  const initialCourse = data.courses.find((item) => item.id === id) ?? data.courses[0];
+  const [courseId, setCourseId] = useState(initialCourse?.id ?? "");
+  const [overrides, setOverrides] = useState<ScoreOverrides>({});
+  const [target, setTarget] = useState(90);
+  const [futureMax, setFutureMax] = useState(100);
+  const [futureCategoryId, setFutureCategoryId] = useState(initialCourse?.categories[0]?.id ?? "");
+  const course = data.courses.find((item) => item.id === courseId);
+  const result = useMemo(() => course ? calculateWhatIf(course, overrides) : null, [course, overrides]);
+  const required = course?.mode === "weighted"
+    ? requiredWeightedScore(course, futureCategoryId, target, futureMax)
+    : course ? requiredPointsScore(course, target, futureMax) : null;
+
+  if (data.courses.length === 0) {
+    return <EmptyState
+      title="No courses to plan"
+      description="Create a course before using what-if planning."
+      action={<Button onClick={() => navigate("/dashboard")}>Create a course</Button>}
+    />;
+  }
+
+  return <div className="page-stack">
+    <div className="page-heading">
+      <div>
+        <p className="eyebrow">Scenario planner</p>
+        <h1>What-if scores</h1>
+        <p>Preview changes without saving them to your real grades.</p>
+      </div>
+    </div>
+    <label className="select-course">Course
+      <select value={courseId} onChange={(event) => {
+        const nextCourse = data.courses.find((item) => item.id === event.target.value);
+        setCourseId(event.target.value);
+        setFutureCategoryId(nextCourse?.categories[0]?.id ?? "");
+        setOverrides({});
+      }}>
+        {data.courses.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
+      </select>
+    </label>
+
+    {course && result && <>
+      <div className="hero-grid">
+        <Card><GradeRing value={result.percent} label="Scenario grade" /></Card>
+        <Card title="How it works">
+          <p>Change any score below. GradeCraft recalculates instantly and keeps the scenario temporary.</p>
+          <Button variant="secondary" onClick={() => setOverrides({})}>Reset scenario</Button>
+        </Card>
+      </div>
+
+      <Card title="Try different scores">
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Assignment</th><th>Actual</th><th>What-if score</th><th>Maximum</th></tr></thead>
+            <tbody>{course.assignments.map((assignment) => <tr key={assignment.id}>
+              <td>{assignment.name}</td>
+              <td>{assignment.score}</td>
+              <td><input
+                aria-label={`What-if score for ${assignment.name}`}
+                type="number"
+                min="0"
+                max={assignment.maxScore}
+                step="0.01"
+                value={overrides[assignment.id] ?? assignment.score}
+                onChange={(event) => setOverrides((current) => ({
+                  ...current,
+                  [assignment.id]: Math.min(assignment.maxScore, Math.max(0, Number(event.target.value))),
+                }))}
+              /></td>
+              <td>{assignment.maxScore}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card title="Target score calculator">
+        <div className="form-grid">
+          <label>Target course %
+            <input type="number" min="0" max="100" value={target} onChange={(event) => setTarget(Number(event.target.value))} />
+          </label>
+          <label>Future assignment maximum
+            <input type="number" min="0.01" value={futureMax} onChange={(event) => setFutureMax(Number(event.target.value))} />
+          </label>
+          {course.mode === "weighted" && <label>Future assignment category
+            <select value={futureCategoryId} onChange={(event) => setFutureCategoryId(event.target.value)}>
+              {course.categories.filter((category) => category.weight > 0).map((category) =>
+                <option key={category.id} value={category.id}>{category.name} ({category.weight}%)</option>)}
+            </select>
+          </label>}
+        </div>
+        <p className="callout">{
+          required === null ? "Enter valid target values and choose a weighted category."
+            : required < 0 ? "You already exceed this target."
+              : required > futureMax
+                ? `You would need ${required.toFixed(1)} / ${futureMax}, which is above the available points.`
+                : `You need at least ${required.toFixed(1)} / ${futureMax} to reach ${target.toFixed(1)}%.`
+        }</p>
+      </Card>
+    </>}
+  </div>;
+}
