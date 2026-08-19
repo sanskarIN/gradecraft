@@ -26,6 +26,14 @@ jobs:
       - run: npm run security:secrets
       - run: npm run release:gate
       - run: npm test
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: ignore
+          retention-days: 14
       - run: npm run build
       - run: npm run perf:budget
       - run: npm audit --audit-level=high
