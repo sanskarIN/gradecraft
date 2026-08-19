@@ -1,0 +1,3 @@
+type LogLevel="info"|"warn"|"error";type Context=Record<string,unknown>;const SECRET_KEY=/(password|token|secret|authorization|cookie|email|name)/i;
+function redact(value:unknown):unknown{if(Array.isArray(value))return value.map(redact);if(value&&typeof value==="object")return Object.fromEntries(Object.entries(value as Record<string,unknown>).map(([k,v])=>[k,SECRET_KEY.test(k)?"[REDACTED]":redact(v)]));return value;}
+export function log(level:LogLevel,event:string,context:Context={}):void{const payload={event,context:redact(context),at:new Date().toISOString()};if(level==="error")console.error(payload);else if(level==="warn")console.warn(payload);else console.info(payload);}
