@@ -1,0 +1,2 @@
+import { describe,expect,it } from "vitest";import { createDefaultData } from "../src/domain/defaults";import { isAppData } from "../src/data/schema";
+describe("grading profile schema identities",()=>{it("rejects duplicate profile names after compatibility normalization",()=>{const data=createDefaultData(),base=data.gradeScales[0]!;const duplicate={...base,id:"alternate",name:" ＳＴＡＮＤＡＲＤ ４.０ ",bands:base.bands.map((band)=>({...band,id:`alternate-${band.id}`}))};expect(isAppData({...data,gradeScales:[base,duplicate]})).toBe(false);});});
