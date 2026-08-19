@@ -26,7 +26,7 @@ Real release screenshots should be captured from the verified built application 
 - Unweighted points-based calculation
 - Custom courses, categories, assignments, credit hours, and grading scales
 - What-if score overrides that never mutate saved grades
-- Target-score planning for points-based courses
+- Target-score planning for both points-based and weighted-category courses
 - Credit-weighted GPA using user-defined scale profiles
 - Score trend and category contribution charts
 - CSV import/export with spreadsheet-formula neutralization on export
