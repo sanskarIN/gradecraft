@@ -8,7 +8,11 @@
 **Working branch:** `phase6/release-audit`  
 **Pull request:** #2 — `feat: complete weighted planning and release audit`  
 **PR state:** Open, draft, mergeable  
-**Current audited code head before this handoff update:** `86fa91b5c106e8bcb95bafb9b0972313a335b9e2`
+**Base branch/head:** `main` at `1177bf730c43f0dad1d996ee4b4e3c7df93c7477`  
+**Audited code head immediately before this handoff update:** `85b67354156034122d2a95aaa51795ec6e1287be`  
+**PR size at that audited code head:** 108 meaningful commits over `main`, 57 changed files
+
+This file is the authoritative continuation checkpoint. Do not describe the release as verified until the latest CI, E2E, CodeQL, dependency, build, and clean-checkout evidence is actually green.
 
 ## Completed work
 
@@ -24,17 +28,25 @@
 - Fixed weighted planner category selection so a valid positive-weight category is chosen even when the first category has zero weight.
 - Added strict target range and future-score input validation.
 - Added validation requiring at least one course category.
-- Hardened grading-scale validation against duplicate band IDs, duplicate labels, duplicate thresholds, incomplete scales without a 0% fallback band, and out-of-range GPA values.
+- Hardened grading-scale validation against duplicate band IDs, duplicate labels, duplicate thresholds, incomplete scales without a 0% fallback band, out-of-range GPA values, and oversized scale text.
+- Added deterministic property-style grade tests covering hundreds of generated valid point-based and weighted grade combinations and asserting results remain within valid percentage bounds.
 
 ### Persistence and data integrity
 
-- Kept privacy-first browser Local Storage persistence with recovery copy behavior and explicit delete controls.
+- Kept privacy-first browser Local Storage persistence with recovery-copy behavior and explicit delete controls.
 - Hardened backup/restore schema validation so restored data must satisfy domain invariants instead of only structural checks.
 - Rejects duplicate course, category, assignment, grading-scale, and grade-band identifiers.
 - Rejects empty persisted entity identifiers and unknown grading-scale references.
 - Rejects assignments referring to missing categories.
-- Rejects invalid weighted totals, invalid assignments, incomplete grading scales, empty course names, and courses without categories during restore.
-- Course editing now prevents removal of a category that still owns assignments, preventing orphaned assignment references.
+- Rejects invalid weighted totals, invalid assignments, incomplete grading scales, empty course names, courses without categories, and backups without any usable grading scale.
+- Rejects restored course colors unless they are safe 3- or 6-digit hexadecimal color values, preventing imported style values from becoming arbitrary CSS resource-bearing values.
+- Added bounded persisted text validation for course names/codes, category names, assignment names, grading-scale names, and band labels.
+- Added strict calendar-date validation for assignment due dates, including correct leap-day handling.
+- Course editing prevents removal of a category that still owns assignments, preventing orphaned assignment references.
+- Improved recovery behavior so a corrupted primary Local Storage record can be restored from a valid recovery record and the primary record is repaired where possible.
+- Prevents corrupted primary content from replacing a known-valid recovery record during the next save.
+- Local persistence now degrades safely if browser storage is blocked or inaccessible instead of throwing through application startup or save/delete operations.
+- Exposes persistence failure state to the application and shows an explicit user-visible alert warning that current changes may not survive leaving the tab.
 - Kept explicit schema version `1` and migration entry point for future versions.
 
 ### CSV and backup safety
@@ -44,15 +56,29 @@
 - Fixed protected CSV text round trips so neutralized values are restored correctly on GradeCraft re-import.
 - Preserved legitimate user text that intentionally starts with an apostrophe.
 - Kept quoted-field parsing, score validation, category-weight validation, file-size limits, and browser-local parsing.
+- Added calendar validation for CSV due dates so impossible dates are rejected before importing.
+- Added bounded CSV category and assignment text fields so oversized imported content cannot bypass normal form limits.
+- Kept CSV course selection valid after restoring/replacing data with a different set of course IDs.
 
 ### UI, accessibility, and localization readiness
 
 - Kept responsive phone/tablet/desktop layouts, onboarding, light/dark/system theme, compact mode, reduced motion, focus visibility, semantic forms/tables, native dialogs, and offline states.
-- Centralized the remaining major English UI messages in `src/i18n/en.ts`.
+- Centralized the major English UI messages in `src/i18n/en.ts` and externalized the new persistence-system warning in `src/i18n/system.ts`.
 - Externalized application-shell, onboarding, dashboard, course, assignment-form, course-form, GPA, what-if, data-transfer, settings, About, modal, grade-ring, trend-chart, and contribution-chart text.
 - Added descriptive assignment Edit/Delete accessible names.
 - Improved chart semantics and preserved non-color textual values.
+- Native modal dialogs now have explicit accessible names wired with `aria-labelledby` and stable React-generated IDs.
+- Modal content is unmounted while closed so cancelled local form drafts reset before the next editing session.
+- Controlled modal closing avoids duplicate close callbacks.
+- First-run onboarding now moves focus into the onboarding dialog and marks application background regions inert for the duration of onboarding, preventing keyboard and assistive-technology interaction with hidden background controls.
 - Kept the required `Made by the Sanskar` credit and contact/funding links.
+
+### What-if and route resilience
+
+- What-if calculations remain non-destructive and scenario-aware.
+- Points and weighted target-score solving are covered for active and previously inactive weighted categories.
+- A stale or missing course ID in a `what-if` hash route now falls back to an available course instead of producing a broken planner state.
+- What-if course selection also re-synchronizes if the available course set changes while the page remains mounted.
 
 ### PWA and deployment
 
@@ -62,44 +88,73 @@
 - Made the manifest start URL and scope relative to its deployment location.
 - Reworked the service-worker navigation strategy so application updates can refresh the navigation shell while a cached shell remains available offline.
 - Scoped service-worker handling to same-origin requests inside the registration scope.
+- Hardened service-worker registration so a browser registration failure does not create an unhandled promise rejection.
 - Bumped the shell cache key and kept old-cache cleanup on activation.
+- The service-worker install phase now parses the built `index.html` and attempts to precache same-origin, in-scope application assets discovered from its `src` and `href` references, in addition to the core shell resources.
+- Service-worker activation now waits for both obsolete-cache cleanup and `clients.claim()`.
+- Added a Playwright journey for an offline reload immediately after the first installed worker claims the page, covering the first-visit offline shell rather than only a previously warmed runtime cache.
+
+### Dependency and configuration hardening
+
+- Updated Vite from the earlier 6.0.7 line to `6.4.3` and `@vitejs/plugin-react` to `4.7.0` while retaining exact direct dependency versions in `package.json`.
+- Hardened ESLint configuration for Node/script and service-worker runtime globals, including the service-worker `fetch` global.
+- Promoted the React Refresh export rule from warning behavior to an error-compatible configuration and explicitly allowed the exported `useApp` hook.
+- Kept strict TypeScript checks, typed linting, deterministic whitespace/line-ending format checks, tests, production build, secret scan, and high-severity dependency audit in CI.
+- Added a temporary branch-only `Lockfile Once` workflow intended solely to generate and commit `package-lock.json` from a network-enabled GitHub runner because the execution sandbox could not access npm. This workflow must be removed once its purpose is complete.
 
 ### Testing
 
-- Extended `tests/whatIf.test.ts` with weighted target planning, empty-category activation, invalid target input, and existing scenario helper coverage.
-- Extended `tests/schema.test.ts` with duplicate identifiers, incomplete scales, empty course names, missing categories, and empty internal identifiers.
-- Extended `tests/csv.test.ts` with secure formula-hardening round trips and intentional leading-apostrophe preservation.
+- Extended `tests/whatIf.test.ts` with weighted target planning, empty-category activation, invalid target input, and scenario helper coverage.
+- Added `tests/gradeProperties.test.ts` with deterministic property-style tests for point-based and weighted grade invariants.
+- Extended `tests/schema.test.ts` with duplicate identifiers, incomplete scales, empty course names, missing categories, empty internal identifiers, missing grading scales, unsafe color values, and bounded course identity fields.
+- Extended `tests/csv.test.ts` with secure formula-hardening round trips, intentional leading-apostrophe preservation, valid/invalid due dates, and bounded imported names.
 - Added `tests/CourseForm.test.tsx` to prevent regression of category/assignment referential integrity.
-- Extended `tests/validation.test.ts` for duplicate grading thresholds/IDs, complete 0%-fallback coverage, and missing categories.
+- Extended `tests/validation.test.ts` for duplicate grading thresholds/IDs, complete 0%-fallback coverage, missing categories, due-date validation, leap-day handling, and bounded text fields.
+- Added `tests/Modal.test.tsx` for modal draft reset, controlled close callback semantics, and accessible dialog naming.
+- Updated `tests/setup.ts` with a jsdom dialog lifecycle shim only when the environment lacks native `showModal` support.
+- Extended `tests/storage.test.ts` with recovery-copy repair, corrupted-primary backup protection, and blocked-storage behavior.
+- Extended `tests/App.test.tsx` with onboarding background isolation/focus behavior and the user-visible persistence-failure warning.
+- Added `tests/WhatIfPage.test.tsx` for stale what-if route recovery.
+- Added `tests/DataPage.test.tsx` for CSV course-selection recovery after full-data replacement.
 - Extended Playwright `e2e/core.spec.ts` with the primary weighted workflow: onboarding → create weighted course → add assignment → open what-if planner → calculate required target score.
-- Updated `docs/testing.md` with the expanded unit, integration, component, E2E, and PWA release checks.
+- Extended Playwright with first-installed-service-worker offline reload coverage.
+- Updated `docs/testing.md` with the expanded unit, property-style, integration, component, E2E, storage-resilience, accessibility, and PWA release checks.
 
 ### CI and repository quality
 
 - Kept CI, E2E, CodeQL, Dependabot, release workflow, issue templates, PR template, funding configuration, documentation, secret scan, and npm audit steps.
 - Added same-ref concurrency cancellation to CI, E2E, and CodeQL to reduce obsolete runs during a high-commit audit.
-- Hardened ESLint configuration for Node/script and service-worker runtime globals.
-- Promoted the React Refresh export rule from a warning to an error-compatible configuration and explicitly allowed the `useApp` hook export.
-- Kept strict TypeScript checks, typed linting, deterministic whitespace/line-ending format checks, tests, production build, secret scan, and high-severity dependency audit in CI.
+- The audit branch intentionally contains many small meaningful commits and should not be squash-merged if preserving the requested reviewable history is desired.
+- PR #2 remains draft while release verification is incomplete.
 
 ### Documentation
 
 - Updated `README.md` to include weighted target planning and accurate release-candidate features.
-- Updated `CHANGELOG.md` with Phase 6 audit additions, changes, and fixes.
+- Updated `CHANGELOG.md` with the additional reliability, data-integrity, PWA, accessibility, validation, testing, and dependency-hardening work.
 - Updated `ROADMAP.md` to mark weighted target-score planning, deployment portability, and English catalog extraction complete.
 - Updated `docs/setup.md` with root/subpath PWA configuration and verification.
-- Updated `docs/release.md` with deployment-base and offline/update smoke checks.
-- Updated `docs/testing.md` with current regression and E2E scope.
+- Updated `docs/release.md` with deployment-base checks, first-visit offline validation, update/cache cleanup checks, and an explicit rule not to tag while release-candidate checks are merely pending or queued.
+- Updated `docs/testing.md` with current regression, property-style, component, E2E, and PWA scope.
+- Updated `docs/accessibility.md` with dialog naming, onboarding focus/background isolation, modal lifecycle behavior, and persistence alerts.
 - Retained the required project/community/security/privacy/architecture/setup/development/testing/release/troubleshooting/accessibility/performance/ADR documentation set.
 
 ## Files/modules added or materially changed in this audit
+
+### Domain/data/state
 
 - `src/domain/whatIf.ts`
 - `src/domain/validation.ts`
 - `src/data/schema.ts`
 - `src/data/csv.ts`
+- `src/data/storage.ts`
+- `src/state/AppContext.tsx`
 - `src/i18n/en.ts`
+- `src/i18n/system.ts`
+
+### Application/UI
+
 - `src/main.tsx`
+- `src/App.tsx`
 - `src/pages/WhatIfPage.tsx`
 - `src/pages/DashboardPage.tsx`
 - `src/pages/CoursePage.tsx`
@@ -115,27 +170,46 @@
 - `src/components/ContributionChart.tsx`
 - `src/components/AssignmentForm.tsx`
 - `src/components/CourseForm.tsx`
+
+### Tests
+
 - `tests/whatIf.test.ts`
+- `tests/gradeProperties.test.ts`
 - `tests/schema.test.ts`
 - `tests/csv.test.ts`
+- `tests/storage.test.ts`
 - `tests/validation.test.ts`
+- `tests/App.test.tsx`
 - `tests/CourseForm.test.tsx`
+- `tests/Modal.test.tsx`
+- `tests/WhatIfPage.test.tsx`
+- `tests/DataPage.test.tsx`
+- `tests/setup.ts`
 - `e2e/core.spec.ts`
+
+### PWA/build/automation
+
 - `public/sw.js`
 - `public/manifest.webmanifest`
 - `index.html`
 - `vite.config.ts`
+- `package.json`
 - `.env.example`
 - `eslint.config.js`
 - `.github/workflows/ci.yml`
 - `.github/workflows/e2e.yml`
 - `.github/workflows/codeql.yml`
+- `.github/workflows/lockfile-once.yml`
+
+### Documentation
+
 - `README.md`
 - `CHANGELOG.md`
 - `ROADMAP.md`
 - `docs/setup.md`
 - `docs/testing.md`
 - `docs/release.md`
+- `docs/accessibility.md`
 - `what_changed.md`
 
 ## Verification
@@ -151,65 +225,86 @@ Previously confirmed toolchain:
 Environment limitations encountered during this project session:
 
 - The execution sandbox could not resolve `github.com` for a normal `git clone`.
-- npm registry access previously timed out, so a clean local dependency installation and lockfile generation could not be completed in this sandbox.
+- npm registry access previously timed out and no useful npm cache was available, so a clean local dependency installation and lockfile generation could not be completed in this sandbox.
 - Because dependencies could not be installed locally, do **not** treat local type/lint/test/build verification as completed.
+- Repository changes were applied through the authenticated GitHub connector and inspected from GitHub after writes.
 
 ### GitHub Actions
 
 GitHub Actions is the network-enabled verification path for this audit.
 
-At audited code head `86fa91b5c106e8bcb95bafb9b0972313a335b9e2`, the current PR-triggered runs were created as:
+At audited code head `85b67354156034122d2a95aaa51795ec6e1287be`, the latest PR-triggered runs inspected were:
 
-- CI run `32217789942` — `pending` at last inspection.
-- E2E run `32217789939` — `pending` at last inspection.
-- CodeQL run `32217789940` — `pending` at last inspection.
+- CI run `32220598786` — `queued` at last inspection.
+- E2E run `32220598685` — `queued` at last inspection.
+- CodeQL run `32220598653` — `pending` at last inspection.
 
-Earlier rapid-commit runs were superseded; workflow concurrency cancellation is now configured. No passing state is claimed until the latest relevant runs actually conclude successfully.
+Earlier rapid-commit runs were superseded by same-ref workflow concurrency cancellation. No passing state is claimed until the latest relevant runs actually conclude successfully. This handoff-document update itself creates a newer branch head and may therefore supersede the run IDs above; the next session must inspect the latest head-specific runs rather than assuming these older IDs remain authoritative.
+
+### Lockfile status
+
+- `package-lock.json` was still absent when last checked on `phase6/release-audit`.
+- `.github/workflows/lockfile-once.yml` is a temporary branch-only helper that attempts `npm install --package-lock-only --ignore-scripts` on a GitHub runner and commits a generated lockfile using `Sanskar <sanskarin@outlook.in>`.
+- Do not keep this temporary workflow in the final merged release once the lockfile has been generated and verified.
+- Until a verified lockfile exists, CI/release documentation intentionally continues using `npm install`; after the lockfile is committed, switch deterministic installs to `npm ci` in separate meaningful commits.
 
 ### Commit identity
 
-GitHub Actions run metadata for audit commit `d4ba48864eb2b18c71506b765b4f5c0523b825be` reports both the head commit author and committer as:
+Raw GitHub commit metadata for audited code head `85b67354156034122d2a95aaa51795ec6e1287be` reports both author and committer as:
 
 - Name: `Sanskar`
 - Email: `sanskarin@outlook.in`
 
-This confirms the requested commit email is present in the Git metadata exposed by GitHub for connector-created audit commits.
+This confirms the requested commit email is present in Git metadata for the connector-created audit work.
 
 ## Known limitations / open issues
 
-1. **Latest CI/E2E/CodeQL are still pending.** The branch remains a draft PR and must not be described as fully release-verified until those checks finish successfully.
-2. **No committed `package-lock.json` yet.** Direct dependencies are exact-version pinned, but a lockfile should be generated and committed from a network-enabled npm install before the final release tag for stronger transitive reproducibility.
-3. **Real release screenshots are not yet committed.** The README intentionally does not use fake screenshots; capture real UI images only after a verified build/deployment.
-4. **Branch protection and GitHub Discussions are repository settings.** Guidance/configuration exists in the repository, but these settings must be enabled through GitHub repository settings when desired.
-5. **Localization packs beyond English are intentionally roadmap work.** The English message catalog and extraction baseline are now substantially complete.
+1. **Latest CI/E2E/CodeQL are not yet green.** The branch remains a draft PR and must not be described as fully release-verified until the latest head-specific checks finish successfully.
+2. **No committed `package-lock.json` yet.** Direct dependencies are exact-version pinned, but transitive reproducibility is incomplete until the generated lockfile is committed and verified.
+3. **The temporary lockfile workflow must be removed.** `.github/workflows/lockfile-once.yml` exists only to work around the sandbox's lack of npm network access and should not ship in the final branch after it succeeds.
+4. **Real release screenshots are not yet committed.** The README intentionally does not use fake screenshots; capture real UI images only after a verified production build/deployment exists.
+5. **Branch protection and GitHub Discussions are repository settings.** Guidance/configuration exists in the repository, but these settings must be enabled through GitHub repository settings when desired.
+6. **Localization packs beyond English are intentionally roadmap work.** The English catalog/extraction architecture is in place, but translated packs are not part of the 1.0 release candidate.
+7. **No final release tag should be created yet.** Tagging is blocked by the incomplete head-specific quality/security verification above.
 
 ## Next exact tasks
 
-1. Re-check CI run `32217789942`, E2E run `32217789939`, and CodeQL run `32217789940` for the audited code head.
-2. If any job fails, inspect its job logs and fix every type, lint, format, test, build, browser, audit, or CodeQL failure with a regression commit.
-3. Generate and commit `package-lock.json` from a successful network-enabled `npm install`, then change CI/release installation to `npm ci` if the resulting lockfile is committed and verified.
-4. After all release-candidate checks pass, capture real screenshots from the verified build and add them to `docs/screenshots/` plus README.
-5. Re-run final clean-checkout verification and audit repository links/documentation against the actual build.
-6. Mark PR #2 ready only after verification evidence is green; merge with a normal merge/rebase strategy that preserves the meaningful atomic commit history rather than squashing it.
-7. After merge, verify the `main` branch workflows and only then create a final release tag.
+1. Read the current PR #2 head SHA after this handoff commit and inspect the latest head-specific CI, E2E, and CodeQL workflow runs.
+2. If any job fails, inspect the failed job output and fix every type, lint, format, unit/integration/component test, build, browser/E2E, audit, or CodeQL failure with a focused regression commit.
+3. Re-check whether `package-lock.json` was generated by the temporary `Lockfile Once` workflow. If it appears, inspect it against current `package.json` before treating it as valid.
+4. Once a valid lockfile exists, delete `.github/workflows/lockfile-once.yml` in its own cleanup commit.
+5. Change CI, E2E, release workflow, setup/release documentation, and other deterministic-install instructions from `npm install` to `npm ci` where appropriate, then re-run all head-specific checks.
+6. Perform final clean-checkout verification with the committed lockfile: dependency install, typecheck, lint, format check, secret scan, unit/integration/component coverage, production build, Playwright E2E, `npm audit --audit-level=high`, and CodeQL.
+7. Run a manual accessibility pass on the verified build: keyboard-only onboarding/course/assignment/settings/import-export/dialog flows, focus visibility and return, 200% zoom, reduced motion, both themes, and at least one screen-reader core journey.
+8. Verify production PWA behavior from a clean browser context: first-load worker claim, immediate offline reload, static asset availability, network restoration, new-release navigation shell refresh, and obsolete-cache deletion.
+9. Capture real screenshots from the verified production build and add them to `docs/screenshots/`, then update README screenshot references and any release documentation that currently describes them as pending.
+10. Audit documentation links, version references, release instructions, support/contact information, BMC link, MIT license, `Made by the Sanskar`, and repository URLs against the final build.
+11. Mark PR #2 ready for review only after all release-candidate verification evidence is green.
+12. Merge PR #2 with a strategy that preserves the meaningful atomic commit history rather than squashing it.
+13. After merge, verify the `main` branch workflows from the merged commit.
+14. Only after `main` is green, create the final release tag and verify the generated release artifact and hosted/static PWA smoke tests.
+15. Close or otherwise retire superseded audit PR #1 only after PR #2 is safely merged and `main` verification is complete.
 
 ## Migration notes
 
 - Current persisted schema version is `1`.
 - This audit tightened validation but did not change the serialized schema shape, so no schema-version increment is required.
 - Existing valid GradeCraft v1 data remains valid.
-- Previously corrupted or internally inconsistent backup data may now be rejected instead of being accepted into application state.
+- Previously corrupted, unsafe, or internally inconsistent backup data may now be rejected instead of being accepted into application state.
+- Rejection cases now include unsafe/non-hex course colors, impossible due dates, oversized bounded text fields, duplicate/empty IDs, missing category/scale references, incomplete grading scales, empty scale collections, invalid weighted totals, invalid scores, and courses without categories.
 - Any future persisted shape change must add an explicit migration and migration regression test.
 
 ## Release notes draft
 
-GradeCraft 1.0 provides privacy-first local grade tracking, weighted and points-based grade calculations, custom grading scales, credit-weighted GPA, scenario-aware what-if planning, weighted target-score solving, charts, CSV/JSON portability, responsive themes, accessibility controls, a configurable offline PWA shell, security/data-integrity validation, and automated quality/security workflows.
+GradeCraft 1.0 provides privacy-first local grade tracking, weighted and points-based grade calculations, custom grading scales, credit-weighted GPA, scenario-aware what-if planning, weighted target-score solving, charts, CSV/JSON portability, responsive themes, accessibility controls, configurable root/subpath PWA deployment, an offline-capable application shell, data-integrity validation, local persistence recovery, and automated quality/security workflows.
 
-The Phase 6 audit additionally hardens restored-data invariants, CSV round trips, category referential integrity, grading-scale completeness, service-worker updates, deployment portability, localization readiness, lint/runtime configuration, and primary browser journey coverage.
+The Phase 6 audit additionally hardens restored-data invariants, CSV round trips, category referential integrity, grading-scale completeness, calendar-date validation, bounded imported/persisted text, safe course-color restoration, blocked-storage behavior, user-visible persistence failures, stale route/data selections, native dialog lifecycle/accessibility, first-run focus isolation, first-install offline precaching, service-worker update/activation behavior, deployment portability, localization readiness, lint/runtime configuration, dependency patching, deterministic property-style grade tests, and expanded component/browser regression coverage.
 
-## Phase 6 audit commit history
+This release-candidate text is a draft. Do not state that CI, CodeQL, E2E, npm audit, clean-checkout build, accessibility review, or release verification passed until those checks are actually completed on the final merged code and recorded here.
 
-The audit branch currently contains 56 meaningful commits over `main` before this handoff commit:
+## Phase 6 audit commit history — initial audited sequence
+
+The previous handoff explicitly recorded these first 56 meaningful audit commits over `main`:
 
 1. `a9ee620` — feat: add weighted target score solver
 2. `53926e3` — test: cover weighted target planning
@@ -267,6 +362,61 @@ The audit branch currently contains 56 meaningful commits over `main` before thi
 54. `dd3ea39` — test: cover missing category validation
 55. `f26ef9e` — fix: reject empty persisted entity identifiers
 56. `86fa91b` — test: cover empty restored identifiers and categories
+
+## Phase 6 audit commit history — continued work recorded after the previous handoff
+
+The following continuation commits are explicitly verified from this session's GitHub writes/inspection. PR #2 reported **108 commits over `main`** at audited code head `85b67354156034122d2a95aaa51795ec6e1287be`; the PR commit graph is authoritative for any intermediary audit commits not enumerated in the earlier handoff list or this continuation list.
+
+1. `99a46ae` — fix: handle service worker registration failures safely
+2. `f4abeb7` — ci: generate reproducible npm lockfile
+3. `f15e3a9` — fix: declare service worker fetch global
+4. `36f4cde` — fix: reset modal form state after closing
+5. `ecad27b` — test: emulate dialog lifecycle in jsdom
+6. `f8e8b58` — test: cover modal draft reset regression
+7. `176461b` — fix: avoid duplicate modal close callbacks
+8. `e6c2214` — test: cover controlled modal close semantics
+9. `f2786ca` — build: patch Vite security advisories
+10. `2899e7e` — fix: require a usable grading scale after restore
+11. `02cec8b` — test: reject backups without grading scales
+12. `54688d3` — a11y: give dialogs explicit accessible names
+13. `59dc3d2` — test: verify dialog accessible naming
+14. `1b993d2` — test: add deterministic grade property coverage
+15. `243f4dd` — fix: validate assignment calendar dates
+16. `8407956` — test: cover assignment date validation
+17. `109be53` — fix: reject malformed CSV due dates
+18. `579f008` — test: cover CSV due date validation
+19. `1f74a20` — fix: validate assignment form due dates
+20. `bf818bf` — fix: preserve valid recovery data during storage repair
+21. `0877171` — fix: recover when browser storage is inaccessible
+22. `9acfee4` — test: cover storage recovery and access failures
+23. `a3b511f` — perf: precache built PWA assets during service worker install
+24. `a4255fa` — test: verify first-visit PWA offline shell
+25. `2f92297` — a11y: isolate onboarding from background controls
+26. `26d4dc0` — test: verify onboarding focus isolation
+27. `6484fd5` — feat: expose local persistence failure state
+28. `3bb7a4c` — refactor: externalize persistence warning text
+29. `22feee6` — feat: warn when browser storage cannot persist changes
+30. `f181081` — test: cover persistence failure warning
+31. `f3aa590` — fix: keep CSV course selection valid after restore
+32. `bb0dd94` — fix: recover invalid what-if course routes
+33. `6c70a19` — test: cover stale what-if course routes
+34. `3721ea5` — test: cover CSV selection after data restore
+35. `67c2c11` — security: restrict restored course colors to safe hex values
+36. `2ec40e2` — test: reject unsafe restored course colors
+37. `72cbc9a` — security: bound persisted user text lengths
+38. `ec40e88` — security: bound restored course identity fields
+39. `703b5de` — refactor: share bounded course input limits
+40. `b3257f9` — refactor: share bounded assignment input limits
+41. `fb9ae48` — refactor: share grading scale input limits
+42. `7f6f3ab` — security: bound imported CSV text fields
+43. `e0cf68d` — test: cover bounded domain text validation
+44. `626f664` — test: cover bounded CSV text validation
+45. `f159406` — test: cover bounded restored course identity
+46. `e1b0305` — fix: await PWA client claiming during activation
+47. `4082a33` — docs: record final audit reliability and security fixes
+48. `91bed0a` — docs: expand final audit testing strategy
+49. `4be69c7` — docs: document onboarding and dialog accessibility hardening
+50. `85b6735` — docs: strengthen offline release verification
 
 ## Earlier baseline commits
 
