@@ -71,12 +71,20 @@ Standalone final-audit script checks performed locally:
 - Release-tag validation was exercised with mismatched `v1.0.1` against a `1.0.0` package and correctly failed.
 - Bundle-budget validation was exercised with tiny JS/CSS artifacts and passed.
 - Bundle-budget validation was exercised with a 600 KiB JS artifact and correctly failed the 500 KiB per-file limit.
+- The release-readiness validator was exercised against a complete synthetic repository fixture and passed with 36 required files and 12 required package scripts.
+- The same release-readiness validator correctly failed when `SECURITY.md` was removed from that fixture.
+
+Changed TypeScript/core-domain evidence:
+
+- The changed deterministic property-test surface passed an isolated strict TypeScript compile using the observed local TypeScript compiler and compatible local module stubs.
+- The actual repository implementations of `gradeMath.ts`, `whatIf.ts`, and `csv.ts` were compiled together and executed in a dependency-free deterministic harness.
+- That harness passed **200 generated grade cases**, **100 feasible points-target solver cases**, **3 weighted-target solver cases**, and **9 CSV label round trips** covering commas, embedded quotes, formula-sensitive prefixes, apostrophes, and Hindi Unicode.
 
 Execution-environment limitation:
 
 - The available container cannot resolve `github.com`, so a fresh clone/dependency installation of the full repository cannot be performed in this execution environment.
 - The GitHub connector's commit-workflow lookup is limited to pull-request-triggered runs; querying the latest direct-push commit returned no workflow runs. That empty result is **not** treated as evidence that CI passed.
-- Therefore this handoff does not claim that `npm run verify`, `npm run test:e2e`, or `npm audit --audit-level=high` passed for the exact latest commit until positive clean-runner/GitHub Actions evidence is inspected.
+- Therefore this handoff does not claim that the full dependency-backed `npm run verify`, `npm run test:e2e`, or `npm audit --audit-level=high` passed for the exact latest commit until positive clean-runner/GitHub Actions evidence is inspected.
 
 ## Known limitations / external publication work
 
@@ -143,3 +151,4 @@ GradeCraft's current Unreleased set adds weighted target-score planning, semeste
 - `6d36293` — docs: mark engineering roadmap final audit complete
 - `b592760` — fix: constrain property targets to reachable grades
 - `c9a4dbe` — docs: align development commands with final gates
+- `c47b322` — docs: finalize GradeCraft release audit handoff
