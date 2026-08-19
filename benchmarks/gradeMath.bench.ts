@@ -1,0 +1,5 @@
+import { bench,describe } from "vitest";import { calculateCourseGrade } from "../src/domain/gradeMath";import type { Course } from "../src/domain/types";
+const now="2026-01-01T00:00:00.000Z";
+function makeCourse(mode:Course["mode"],count:number):Course{const categories=mode==="weighted"?[{id:"homework",name:"Homework",weight:40},{id:"tests",name:"Tests",weight:60}]:[{id:"all",name:"All",weight:100}];return{id:`bench-${mode}`,name:"Benchmark",code:"BENCH",color:"#4f46e5",creditHours:3,mode,scaleId:"standard-4",categories,assignments:Array.from({length:count},(_,index)=>({id:`assignment-${index}`,name:`Assignment ${index}`,categoryId:mode==="weighted"?(index%2===0?"homework":"tests"):"all",score:70+(index%31),maxScore:100,createdAt:now,updatedAt:now})),createdAt:now,updatedAt:now};}
+const pointsCourse=makeCourse("points",10_000),weightedCourse=makeCourse("weighted",10_000);
+describe("grade calculation throughput",()=>{bench("10k point-based assignments",()=>{calculateCourseGrade(pointsCourse);});bench("10k weighted assignments",()=>{calculateCourseGrade(weightedCourse);});});
