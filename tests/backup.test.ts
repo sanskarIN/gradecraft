@@ -1,0 +1,2 @@
+import { describe,expect,it } from "vitest";import { createBackup,parseBackup } from "../src/data/backup";import { createDefaultData } from "../src/domain/defaults";
+describe("backup",()=>{it("round trips app data",()=>{const data=createDefaultData("2026-01-01T00:00:00.000Z");expect(parseBackup(createBackup(data,"2026-01-02T00:00:00.000Z"))).toEqual(data);});it("rejects unknown formats",()=>{expect(()=>parseBackup('{"format":"other"}')).toThrow(/unsupported/i);});});

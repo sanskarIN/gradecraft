@@ -1,0 +1,2 @@
+import { describe,expect,it,vi } from "vitest";import { log } from "../src/data/logger";
+describe("structured logger",()=>{it("redacts sensitive context keys",()=>{const spy=vi.spyOn(console,"info").mockImplementation(()=>undefined);log("info","test_event",{token:"secret-value",nested:{email:"person@example.com",safe:3}});const payload=spy.mock.calls[0]?.[0] as {context:Record<string,unknown>};expect(payload.context.token).toBe("[REDACTED]");expect(payload.context.nested).toEqual({email:"[REDACTED]",safe:3});spy.mockRestore();});});
