@@ -10,6 +10,9 @@ GradeCraft uses layered automated checks. The goal is to verify calculation corr
 - `tests/whatIf.test.ts` — temporary score overrides plus points and weighted target-score solving.
 - `tests/schema.test.ts` — persisted schema compatibility, semester metadata, and optional locale settings.
 - `tests/i18n.test.ts` — English/Hindi catalog parity, fallback behavior, and dynamic localized messages.
+- `tests/property.test.ts` — seeded deterministic property-style checks for grade bounds, target-solver consistency, and CSV label round trips across punctuation, spreadsheet-sensitive prefixes, apostrophes, and Unicode.
+
+The property suite uses a fixed pseudo-random seed so it explores many generated inputs while remaining reproducible on every runner.
 
 ## Data integration and security tests
 
@@ -41,7 +44,15 @@ Run the combined local verification command:
 npm run verify
 ```
 
-It includes TypeScript checking, ESLint, repository format checks, local Markdown-link checks, secret scanning, unit/component tests with coverage, and the production build.
+It includes TypeScript checking, ESLint, repository format checks, local Markdown-link checks, secret scanning, the static release-readiness gate, unit/component/property tests with coverage, the production build, and bundle-size budgets.
+
+The release-readiness gate can also be run independently without installing browser tooling:
+
+```bash
+npm run release:gate
+```
+
+It verifies required project/docs/community files, required package scripts, README identity/support markers, semantic version shape, CI quality steps, and release-workflow verification wiring.
 
 Run browser tests separately:
 
@@ -49,15 +60,17 @@ Run browser tests separately:
 npm run test:e2e
 ```
 
-The local documentation-link checker can also be run directly:
+The local documentation-link checker and production bundle budget can also be run directly:
 
 ```bash
 npm run docs:links
+npm run build
+npm run perf:budget
 ```
 
 ## Coverage
 
-Vitest enforces minimum coverage for domain/data modules. Coverage is a signal, not a substitute for meaningful assertions or browser-level verification.
+Vitest enforces minimum coverage for domain/data modules. Coverage is a signal, not a substitute for meaningful assertions or browser-level verification. Deterministic property checks add breadth around edge-heavy math and serialization behavior without replacing focused regression tests.
 
 ## Manual accessibility checklist
 
