@@ -24,6 +24,7 @@ jobs:
       - run: npm run format:check
       - run: npm run docs:links
       - run: npm run security:secrets
+      - run: npm run version:check
       - run: npm run release:gate
       - run: npm test
       - name: Upload coverage report
