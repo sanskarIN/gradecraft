@@ -14,6 +14,12 @@ All notable changes to GradeCraft are documented here.
 - Guarded grading-scale profile deletion with in-use and last-profile protection.
 - Application-level recovery boundary for unexpected render failures.
 - Local Markdown documentation-link verification.
+- Deterministic release-readiness validation for required files, package scripts, README identity/support markers, CI gates, and tag-release wiring.
+- Executable production bundle budgets for JavaScript, CSS, and total `dist/` size.
+- Release-tag/package-version consistency validation.
+- Deterministic property-style coverage for generated grade cases, target-score solver consistency, and CSV Unicode/formula-sensitive label round trips.
+- CI artifacts for coverage and Playwright diagnostics.
+- Dedicated release-readiness evidence documentation.
 - Expanded Playwright journeys for course grading, GPA, localization persistence, and mapped CSV import.
 - Regression coverage for localization, encrypted backups, semester compatibility, weighted planning, PWA deployment rules, storage recovery, grading-scale safeguards, category references, and restore cancellation.
 
@@ -26,7 +32,11 @@ All notable changes to GradeCraft are documented here.
 - PWA assets, manifest scope, and service-worker registration now support subpath/static hosting.
 - PWA navigation uses network-first refresh with cached-shell fallback instead of indefinitely cache-first HTML.
 - Playwright journeys are included in the strict application TypeScript project.
-- `npm run verify` now includes documentation-link validation.
+- Playwright can run against an already-built release artifact so the exact verified `dist/` output is exercised before packaging.
+- `npm run verify` now includes documentation-link validation, release-readiness validation, the production build, and bundle-size budgets.
+- Main CI now enforces documentation links, release readiness, bundle budgets, and uploads coverage evidence.
+- Tag releases now require an exact version/tag match, high-severity dependency audit, Chromium installation, and Playwright E2E before packaging.
+- The release workflow no longer performs a redundant standalone build after `npm run verify`.
 
 ### Fixed
 
@@ -37,6 +47,8 @@ All notable changes to GradeCraft are documented here.
 - Grading scales must include a 0% floor so every valid percentage has a defined band.
 - CSV formula-neutralization now round-trips assignment and category names without changing legitimate leading characters.
 - Encrypted-backup tamper testing now mutates ciphertext deterministically.
+- CI no longer omits the repository documentation-link gate.
+- Release tags that do not match `package.json` are rejected before an artifact can be published.
 
 ### Security
 
@@ -46,6 +58,7 @@ All notable changes to GradeCraft are documented here.
 - Encrypted backups use AES-GCM authentication with PBKDF2-SHA-256 key derivation, randomized salt, and randomized IV.
 - Backup passphrases are not persisted and are cleared from successful export/restore form state.
 - Destructive restore/delete paths use explicit confirmation or guarded state transitions.
+- Release publication is blocked on a high-severity dependency audit and the existing repository security gates.
 
 ### Existing baseline
 
@@ -55,7 +68,7 @@ All notable changes to GradeCraft are documented here.
 - Trend and category contribution visualizations.
 - Local persistence, backup/restore, CSV transfer, and privacy controls.
 - Responsive theming, onboarding, accessibility preferences, and offline shell.
-- Unit, integration, component, and Playwright browser tests.
+- Unit, integration, component, property-style, and Playwright browser tests.
 - CI, CodeQL, Dependabot, release workflow, and project documentation.
 
 ## [1.0.0] - 2026-08-19
