@@ -16,9 +16,10 @@
 14. Restore the network, confirm an updated deployment replaces the cached navigation shell, and verify stale GradeCraft-owned caches are removed after activation without touching unrelated same-origin caches.
 15. Complete manual keyboard, focus-restoration, 200%-zoom, reduced-motion, light/dark contrast, and screen-reader smoke checks.
 16. Capture real screenshots only from the verified release candidate and place them under `docs/screenshots/` before referencing them as release evidence.
-17. Tag `vX.Y.Z` and push the tag only after the release-candidate checks are green.
-18. The release workflow builds the root-hosted PWA and attaches a zip to the GitHub release.
-19. Smoke-test the hosted/static deployment and PWA install/offline behavior.
+17. Tag `vX.Y.Z` and push the tag only after the release-candidate checks are green. The tag must exactly match the `package.json` version as `vX.Y.Z`.
+18. The release workflow runs the full verification and high-severity dependency audit, packages the root-hosted PWA as `gradecraft-pwa.zip`, generates `gradecraft-pwa.zip.sha256`, and publishes both files with GitHub's authenticated `gh` CLI.
+19. Verify the published SHA-256 checksum before distributing or mirroring the archive.
+20. Smoke-test the hosted/static deployment and PWA install/offline behavior.
 
 For a subpath artifact, build separately with the deployment value set before `npm run build` and publish that `dist/` output to the matching subpath.
 
