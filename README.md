@@ -25,18 +25,20 @@ Real release screenshots should be captured from the verified built application 
 - Weighted categories with strict 100% weight validation
 - Unweighted points-based calculation
 - Custom courses, categories, assignments, credit hours, and grading scales
+- Safe grading-scale profile creation, editing, and deletion with reference protection
 - What-if score overrides that never mutate saved grades
-- Target-score planning for both points-based and weighted-category courses
+- Target-score planning for both points-based and weighted-category courses, with conservative minimum-score display
 - Credit-weighted GPA using user-defined scale profiles
 - Score trend and category contribution charts
-- CSV import/export with spreadsheet-formula neutralization on export
-- Full JSON backup/restore
-- Privacy-first local browser storage with a recovery copy and delete controls
-- Offline PWA shell with service-worker caching
+- CSV import/export with spreadsheet-formula neutralization, bounded rows, Unicode-aware category matching, and weight-conflict validation
+- Full JSON backup/restore with schema, timestamp, identifier, reference, and grading-scale integrity checks
+- Privacy-first local browser storage with a recovery copy, explicit delete controls, and persistence-failure warnings
+- Offline PWA shell with service-worker caching, portable base paths, and separate any/maskable icon sources
+- Restrictive client-side CSP and no-referrer metadata
 - Light, dark, and system themes
 - Reduced-motion and compact accessibility preferences
 - Responsive phone/tablet/desktop layouts
-- Keyboard navigation, visible focus states, semantic tables/forms, and screen-reader labels
+- Keyboard navigation, current-page semantics, visible focus states, semantic tables/forms, screen-reader labels, and dialog focus restoration
 - No account, backend, analytics, or required cloud service
 
 ## Supported platforms
@@ -66,9 +68,12 @@ See [`docs/setup.md`](docs/setup.md) and [`docs/development.md`](docs/developmen
 npm run typecheck
 npm run lint
 npm run format:check
+npm run docs:links
+npm run release:version-check
 npm test
 npm run build
 npm run test:e2e
+npm run bench
 ```
 
 ## Build and release
@@ -85,16 +90,18 @@ The production PWA bundle is emitted to `dist/`. See [`docs/release.md`](docs/re
 
 - `src/domain/` — pure grade, GPA, what-if, and validation rules
 - `src/data/` — local persistence, backup, CSV, and safe logging
+- `src/errors/` — centralized user-facing error boundaries/messages
 - `src/state/` — explicit application-state wiring
 - `src/components/` — reusable accessible UI primitives
 - `src/pages/` — route-level product experiences
 - `tests/` and `e2e/` — automated verification
+- `benchmarks/` — deterministic performance harnesses
 
 Read [`docs/architecture.md`](docs/architecture.md) and [`docs/adr/`](docs/adr/).
 
 ## Security and privacy
 
-Grade data is stored locally in the browser. GradeCraft does not require sign-in or transmit grades to a GradeCraft server. See [`PRIVACY.md`](PRIVACY.md) and [`SECURITY.md`](SECURITY.md).
+Grade data is stored locally in the browser. GradeCraft does not require sign-in or transmit grades to a GradeCraft server. Imported data is validated as untrusted input, exported spreadsheet cells are formula-hardened, and structured logs redact sensitive domain/credential-like values. See [`PRIVACY.md`](PRIVACY.md) and [`SECURITY.md`](SECURITY.md).
 
 ## Contributing
 
