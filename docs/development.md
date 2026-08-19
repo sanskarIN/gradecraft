@@ -8,13 +8,14 @@
 - `npm run format:check` — verify the repository whitespace/line-ending baseline.
 - `npm run docs:links` — validate local Markdown links without making network requests.
 - `npm run security:secrets` — scan tracked text for common private-key/API-token patterns.
+- `npm run version:check` — verify that package metadata, changelog, handoff, About version wiring, and localization catalogs cannot drift apart.
 - `npm run release:gate` — verify required release files, scripts, identity/support markers, and CI/release workflow wiring.
 - `npm run release:tag -- vX.Y.Z` — verify a release tag exactly matches `package.json`.
 - `npm test` — run Vitest with coverage thresholds, including deterministic property-style cases.
 - `npm run build` — create the production PWA bundle.
 - `npm run perf:budget` — enforce JavaScript, CSS, and total production bundle budgets after a build.
 - `npm run test:e2e` — run Playwright Chromium journeys against the production preview build.
-- `npm run verify` — run typecheck + lint + format + docs links + secret scan + release gate + tests + production build + bundle budgets.
+- `npm run verify` — run typecheck + lint + format + docs links + secret scan + version sync + release gate + tests + production build + bundle budgets.
 
 ## Recommended local loop
 
@@ -29,16 +30,25 @@ npm test
 Before pushing:
 
 ```bash
+npm run version:check
 npm run verify
 npm run test:e2e
 npm audit --audit-level=high
 ```
 
-Before tagging a release, also validate the exact intended tag:
+Before tagging the prepared 2.0.12 candidate:
 
 ```bash
-npm run release:tag -- vX.Y.Z
+npm run release:tag -- v2.0.12
 ```
+
+For later releases, substitute the new package version in that command.
+
+## Versioning rule
+
+`package.json` is the user-visible application version source of truth. The About screen derives its version from package metadata rather than a translated string. A release version must also have a matching dated `CHANGELOG.md` heading and matching package version in `what_changed.md`; `npm run version:check` enforces these invariants.
+
+Do not add semantic-version literals to localization catalogs. This prevents translated UI from retaining an obsolete version after a package bump.
 
 ## Engineering rules
 
