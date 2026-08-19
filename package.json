@@ -1,7 +1,7 @@
 {
   "name": "gradecraft",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.12",
   "type": "module",
   "description": "Privacy-first student grade calculator PWA.",
   "scripts": {
