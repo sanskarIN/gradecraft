@@ -10,16 +10,24 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
       - run: npm install --ignore-scripts
+      - name: Verify tag matches package version
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          test "$GITHUB_REF_NAME" = "$expected" || { echo "Tag $GITHUB_REF_NAME does not match package version $expected"; exit 1; }
       - run: npm run verify
-      - run: npm run build
-      - run: cd dist && zip -r ../gradecraft-pwa.zip .
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: gradecraft-pwa.zip
-          generate_release_notes: true
+      - run: npm audit --audit-level=high
+      - name: Package PWA artifact
+        run: cd dist && zip -r ../gradecraft-pwa.zip .
+      - name: Generate SHA-256 checksum
+        run: sha256sum gradecraft-pwa.zip > gradecraft-pwa.zip.sha256
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" gradecraft-pwa.zip gradecraft-pwa.zip.sha256 --verify-tag --generate-notes
