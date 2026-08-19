@@ -10,7 +10,7 @@ GradeCraft uses layered automated checks.
 
 CSV, backups, schema restoration, explicit storage migrations, structured-log redaction, and Local Storage behavior are tested in jsdom. CSV regression cases cover spreadsheet-formula hardening, secure text round trips, deterministic punctuation/Unicode fuzz cases, bounded names, valid calendar dates, duplicate-header rejection, bounded assignment-row counts, optional category-weight intent, and existing-category weight conflicts. Storage tests cover corrupt primary data, recovery-copy repair, invalid-primary backup protection, blocked storage access, and explicit-delete semantics.
 
-`tests/securityMetadata.test.ts` verifies the static browser CSP/referrer baseline, including the absence of inline-script permission. `tests/serviceWorkerSource.test.ts` guards same-origin/scope restrictions plus ownership isolation for cache cleanup and cache reads. `tests/manifest.test.ts` guards portable PWA start/scope metadata plus separate any/maskable icon sources. `tests/UserFacingError.test.ts` verifies unexpected exceptions use approved user-safe fallbacks.
+`tests/securityMetadata.test.ts` verifies the static browser CSP/referrer baseline, including the absence of inline-script permission. `tests/serviceWorkerSource.test.ts` guards same-origin/scope restrictions plus ownership isolation for cache cleanup and cache reads. `tests/manifest.test.ts` guards portable PWA start/scope metadata plus separate any/maskable icon sources. `tests/UserFacingError.test.ts` verifies unexpected exceptions use approved user-safe fallbacks. `tests/releaseWorkflow.test.ts` protects tagged-release version matching, SHA-256 checksum generation, and native GitHub CLI publishing without the removed third-party release publisher.
 
 ## Component tests
 
@@ -30,7 +30,7 @@ CSV, backups, schema restoration, explicit storage migrations, structured-log re
 
 ## Coverage
 
-Vitest enforces minimum coverage for domain/data modules. Coverage is a signal, not a substitute for meaningful assertions.
+Vitest enforces minimum coverage for domain, data, and centralized error modules. Coverage is a signal, not a substitute for meaningful assertions.
 
 ## Manual accessibility checklist
 
