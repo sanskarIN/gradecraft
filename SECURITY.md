@@ -18,7 +18,7 @@ GradeCraft has no authentication backend and keeps grade data client-side. Impor
 - Arbitrary CSV mappings are reviewed before imported rows are applied.
 - Backup envelope formats and schema versions are validated before restore.
 - Restore requires explicit user confirmation before replacing current local data.
-- Exported spreadsheet cells are neutralized when they begin with common formula prefixes, with round-trip handling for protected names.
+- Exported spreadsheet cells are neutralized when they begin with common formula prefixes or control-character prefixes such as tab/newline/carriage return, with round-trip handling for protected names.
 - Category edits cannot orphan saved assignments.
 - Grading-scale deletion is blocked when a profile is in use or is the last remaining profile.
 - Local Storage recovery repairs a corrupt primary record from a valid recovery snapshot without copying the corrupt record over the recovery copy.
