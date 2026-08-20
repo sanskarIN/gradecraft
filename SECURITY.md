@@ -25,10 +25,17 @@ GradeCraft has no authentication backend and keeps grade data client-side. Impor
 - Local and imported files have explicit size limits in the UI.
 - Structured logs redact identity/secret-like keys and avoid raw parser/storage exception text.
 - The browser entry point applies a restrictive Content Security Policy and a no-referrer policy.
+- Packaged Tauri webviews enforce a restrictive native CSP that permits only local application content plus the IPC endpoints required by Tauri.
+- Native CSP forbids objects, frames, framing, wildcard sources, off-origin form targets, and mutable base URLs.
+- Packaged custom-protocol pages freeze `Object.prototype`, and Tauri asset CSP rewriting remains enabled.
+- Native capabilities are scoped to the `main` window and limited to the core default set plus the dialog/file permissions needed for user-selected exports.
+- `npm run release:gate` verifies the native CSP, prototype-freezing setting, capability baseline, and other release-critical security configuration.
 - The PWA service worker handles only same-origin requests inside its scope and refreshes navigations from the network when online.
 - An application-level error boundary avoids exposing raw render failures in the recovery UI.
 
 Dependencies are checked by Dependabot, npm audit in CI, and CodeQL.
+
+The native webview security decision and its release invariants are documented in [`docs/adr/0009-native-webview-hardening.md`](docs/adr/0009-native-webview-hardening.md).
 
 ## Encrypted backup design
 
