@@ -3,7 +3,7 @@
   "private": true,
   "version": "2.0.12",
   "type": "module",
-  "description": "Privacy-first student grade calculator PWA.",
+  "description": "Privacy-first student grade calculator for web, desktop, and mobile.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -21,14 +21,45 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "verify": "npm run typecheck && npm run lint && npm run format:check && npm run docs:links && npm run security:secrets && npm run version:check && npm run release:gate && npm run test && npm run build && npm run perf:budget",
-    "security:secrets": "node scripts/check-secrets.mjs"
+    "security:secrets": "node scripts/check-secrets.mjs",
+    "native": "tauri",
+    "native:dev": "tauri dev",
+    "native:build": "tauri build",
+    "native:check": "cargo check --manifest-path src-tauri/Cargo.toml",
+    "native:icons": "tauri icon public/icons/icon.svg",
+    "android:init": "tauri android init",
+    "android:dev": "tauri android dev",
+    "android:build": "tauri android build",
+    "ios:init": "tauri ios init",
+    "ios:dev": "tauri ios dev",
+    "ios:build": "tauri ios build"
   },
   "engines": { "node": ">=20.19.0" },
-  "dependencies": { "react": "19.0.0", "react-dom": "19.0.0" },
+  "dependencies": {
+    "@tauri-apps/api": "2.11.1",
+    "@tauri-apps/plugin-dialog": "2.7.2",
+    "@tauri-apps/plugin-fs": "2.5.1",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
   "devDependencies": {
-    "@eslint/js": "9.17.0", "@playwright/test": "1.49.1", "@testing-library/jest-dom": "6.6.3", "@testing-library/react": "16.1.0",
-    "@types/react": "19.0.3", "@types/react-dom": "19.0.2", "@vitejs/plugin-react": "4.3.4", "@vitest/coverage-v8": "3.0.5",
-    "eslint": "9.17.0", "eslint-plugin-react-hooks": "5.1.0", "eslint-plugin-react-refresh": "0.4.16", "jsdom": "26.0.0",
-    "typescript": "5.7.2", "typescript-eslint": "8.18.2", "vite": "6.0.7", "vitest": "3.0.5", "@types/node": "22.10.2"
+    "@eslint/js": "9.17.0",
+    "@playwright/test": "1.49.1",
+    "@tauri-apps/cli": "2.11.4",
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.1.0",
+    "@types/react": "19.0.3",
+    "@types/react-dom": "19.0.2",
+    "@vitejs/plugin-react": "4.3.4",
+    "@vitest/coverage-v8": "3.0.5",
+    "eslint": "9.17.0",
+    "eslint-plugin-react-hooks": "5.1.0",
+    "eslint-plugin-react-refresh": "0.4.16",
+    "jsdom": "26.0.0",
+    "typescript": "5.7.2",
+    "typescript-eslint": "8.18.2",
+    "vite": "6.0.7",
+    "vitest": "3.0.5",
+    "@types/node": "22.10.2"
   }
 }
