@@ -39,6 +39,17 @@
 - [x] Release tag/package-version validation
 - [x] Tag releases gated by verification, dependency audit, and Chromium E2E
 - [x] Release-readiness evidence matrix and final release procedure
+- [x] Superseded CI/E2E/native runs cancel automatically per ref
+- [x] Manual CI/native dispatch available for release evidence collection
+
+## Native application security
+
+- [x] Restrictive packaged Tauri Content Security Policy
+- [x] Packaged custom-protocol `Object.prototype` freezing
+- [x] Window-scoped export-only native capability boundary
+- [x] Release gate rejects missing/wildcard native CSP and disabled prototype hardening
+- [x] Release gate protects Tauri asset CSP rewriting
+- [x] Native webview threat boundary documented in ADR 0009 and `SECURITY.md`
 
 ## 2.0.12 — Version integrity and release preparation
 
@@ -56,7 +67,8 @@
 - [ ] Capture real screenshots from a positively verified production build.
 - [ ] Publish and verify a hosted demo URL if a public demo is desired.
 - [ ] Record positive clean-checkout/GitHub Actions evidence for the exact 2.0.12 release commit before tagging `v2.0.12`.
+- [ ] Smoke-test packaged native startup and export dialogs under the enforced CSP on each platform intended for publication.
 
-These items require an actual runner/browser/deployment and are intentionally not replaced with generated screenshots, mock deployment links, or an assumption that missing status contexts mean success.
+These items require an actual runner/browser/deployment or target platform and are intentionally not replaced with generated screenshots, mock deployment links, or an assumption that missing status contexts mean success.
 
 Privacy-first offline use remains the product baseline. Cloud storage is optional transport chosen by the user; GradeCraft does not require an account or receive backup passphrases.
