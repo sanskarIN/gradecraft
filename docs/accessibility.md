@@ -12,6 +12,7 @@ GradeCraft targets WCAG-oriented accessibility practices across desktop, tablet,
 - Modal close controls receive the active locale's accessible label instead of a hardcoded English-only name.
 - Controlled modal closing routes button/Escape cancellation through one close callback path to avoid duplicate close handling.
 - Text labels and numerical values in addition to chart/color encoding.
+- Score-trend and category-contribution charts localize their screen-reader names, empty states, category fallback text, and contribution summaries in English/Hindi.
 - Reduced-motion preference and a compact-layout preference.
 - Responsive, zoom-friendly layout with horizontal table scrolling where needed.
 - Screen-reader labels for action-only or context-sensitive controls.
@@ -29,6 +30,7 @@ Verify at minimum:
 - `html[lang]` changes to `en` or `hi` immediately and after reload;
 - translated labels remain associated with their inputs;
 - modal dialogs expose their translated heading as the dialog name and their close control uses the current locale;
+- chart accessible names, empty-state messages, and text summaries use the current locale;
 - no translated button text is clipped at narrow widths or 200% zoom;
 - mixed technical terms such as GPA, CSV, JSON, and GradeCraft remain understandable in context.
 
@@ -42,10 +44,10 @@ CSV mapping and encrypted-backup flows contain dense forms and must be keyboard-
 
 ## Charts
 
-Charts are supplementary visualizations. Course/GPA values and assignment data remain available as text/tables; users should not need to distinguish chart colors to determine their grade.
+Charts are supplementary visualizations. Course/GPA values and assignment data remain available as text/tables; users should not need to distinguish chart colors to determine their grade. Chart copy is resolved from the active English/Hindi locale, and decorative bar geometry is hidden from assistive technologies where the same value is already represented by text.
 
 ## Manual audit cadence
 
-Before each release, repeat keyboard navigation, 200% zoom, light/dark contrast, reduced-motion, screen-reader smoke tests, onboarding, course editing, assignment editing, dialog opening/closing, weighted what-if planning, GPA, Settings/language switching, CSV mapping, encrypted backup controls, and destructive-action confirmations.
+Before each release, repeat keyboard navigation, 200% zoom, light/dark contrast, reduced-motion, screen-reader smoke tests, onboarding, course editing, assignment editing, dialog opening/closing, chart announcements, weighted what-if planning, GPA, Settings/language switching, CSV mapping, encrypted backup controls, and destructive-action confirmations.
 
 Automated accessibility tooling can detect many regressions but does not replace real assistive-technology testing.
