@@ -4,7 +4,22 @@ All notable changes to GradeCraft are documented here.
 
 ## [Unreleased]
 
-No unreleased changes are currently queued after the 2.0.12 release-candidate preparation.
+### Added
+
+- ADR 0009 documenting the packaged native webview security boundary, CSP policy, prototype hardening, and release invariants.
+- Manual dispatch support for CI and Native workflows to simplify evidence collection on release candidates.
+
+### Changed
+
+- CI, E2E, and Native workflows now cancel superseded runs for the same ref so stale commits do not consume runner time or obscure the current verification result.
+- The release gate now treats the native webview security configuration and ADR 0009 as release-critical assets.
+
+### Security
+
+- Packaged Tauri webviews now enforce a restrictive Content Security Policy that limits application content to local sources and the Tauri IPC endpoints required by native APIs.
+- Native CSP blocks wildcard sources, objects, frames, framing, off-origin form targets, and mutable base URLs.
+- Packaged custom-protocol pages now freeze `Object.prototype`.
+- Tauri asset CSP rewriting is explicitly protected from being disabled by the release gate.
 
 ## [2.0.12] - 2026-08-19
 
