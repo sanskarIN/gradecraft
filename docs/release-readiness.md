@@ -13,6 +13,7 @@ This document separates repository-complete engineering work from evidence that 
 | Secret-pattern scan | `npm run security:secrets` |
 | Version synchronization | `npm run version:check` |
 | Release structure | `npm run release:gate` |
+| Native webview security baseline | `npm run release:gate` checks CSP, prototype freezing, and asset CSP rewriting |
 | Unit/component/property tests | `npm test` |
 | Production web/frontend build | `npm run build` |
 | Bundle budgets | `npm run perf:budget` |
@@ -27,7 +28,7 @@ This document separates repository-complete engineering work from evidence that 
 | Static security analysis | GitHub CodeQL workflow |
 | Tag/package consistency | `npm run release:tag -- vX.Y.Z` |
 
-The main CI workflow runs the shared non-browser quality gates plus the dependency audit and uploads the coverage report. The E2E workflow installs Chromium, runs Playwright, and preserves the HTML report as an artifact. The Native workflow verifies the shared Tauri shell on the three desktop runner families and validates mobile project generation.
+The main CI workflow runs the shared non-browser quality gates plus the dependency audit and uploads the coverage report. The E2E workflow installs Chromium, runs Playwright, and preserves the HTML report as an artifact. The Native workflow verifies the shared Tauri shell on the three desktop runner families and validates mobile project generation. CI, E2E, and Native use per-ref concurrency so a newer commit cancels obsolete verification for the same ref; CI and Native can also be dispatched manually when collecting release evidence.
 
 ## Version 2.0.12 candidate commands
 
@@ -47,6 +48,8 @@ npm run release:tag -- v2.0.12
 A release candidate is blocked by any failure.
 
 `npm run version:check` is included inside `npm run verify`. It requires `package.json`, `src-tauri/Cargo.toml`, Tauri's package-version source, the dated changelog release heading, `what_changed.md`, and the About screen's package-derived version wiring to agree. It also prevents semantic-version literals from returning to the localization catalogs.
+
+`npm run release:gate` also protects the packaged native trust boundary. It requires the Tauri CSP to stay enabled with the approved local/IPC directives, rejects wildcard CSP sources, requires `freezePrototype: true`, rejects explicit disabling of Tauri's asset CSP modification, and requires ADR 0009 to remain present.
 
 ## Platform artifact evidence
 
@@ -69,6 +72,7 @@ Signing/notarization/provisioning evidence belongs to the trusted release enviro
 - Review keyboard navigation, focus order, zoom, contrast, reduced motion, and a screen reader on primary journeys.
 - Verify PWA installation, update behavior, subpath hosting, and offline shell behavior in a real browser.
 - Verify native system save dialogs and cross-platform backup/CSV interoperability on native targets being published.
+- Verify packaged native windows start successfully with the enforced CSP and that no required local assets or Tauri IPC calls are blocked.
 - Review current CodeQL, Dependabot, CI, E2E, and Native results in GitHub Actions.
 - For Android/iOS releases, test an emulator/simulator and a physical device when practical before store publication.
 - Capture real application screenshots only after the verified target build is running.
