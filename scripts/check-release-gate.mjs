@@ -47,6 +47,7 @@ const requiredFiles = [
   "src-tauri/tauri.conf.json",
   "src-tauri/src/main.rs",
   "src-tauri/src/lib.rs",
+  "src-tauri/src/android_export.rs",
   "src-tauri/capabilities/default.json",
   "scripts/check-version-sync.mjs",
 ];
@@ -167,8 +168,15 @@ for (const permission of ["core:default", "dialog:default", "fs:write-files"]) {
 }
 
 const cargo = read("src-tauri/Cargo.toml");
-for (const dependency of ["tauri-plugin-dialog", "tauri-plugin-fs"]) {
+for (const dependency of ["tauri-plugin-dialog", "tauri-plugin-fs", 'jni = "0.21"']) {
   if (!cargo.includes(dependency)) failures.push(`Native Cargo manifest is missing ${dependency}.`);
+}
+
+const androidExport = read("src-tauri/src/android_export.rs");
+for (const marker of ["getContentResolver", "openOutputStream", 'new_string("wt")']) {
+  if (!androidExport.includes(marker)) {
+    failures.push(`Android content-URI export adapter is missing required marker: ${marker}`);
+  }
 }
 
 if (failures.length) {
