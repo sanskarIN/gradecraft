@@ -45,13 +45,12 @@ jobs:
       - name: Select stable Rust
         run: rustup update stable
       - run: npm install --ignore-scripts
-      - run: npm run native:icons
       - run: npm run native:check
 
-  android-scaffold:
-    name: Android scaffold
+  android-build:
+    name: Android debug APK (aarch64)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       CI: "true"
     steps:
@@ -63,13 +62,16 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Select stable Rust
-        run: rustup update stable
+      - name: Select stable Rust and Android target
+        run: |
+          rustup update stable
+          rustup target add aarch64-linux-android
       - name: Select installed Android NDK
         shell: bash
         run: echo "NDK_HOME=$(find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)" >> "$GITHUB_ENV"
       - run: npm install --ignore-scripts
       - run: npm run android:init -- --ci
+      - run: npm run android:build -- --debug --apk --target aarch64
 
   ios-scaffold:
     name: iOS scaffold
