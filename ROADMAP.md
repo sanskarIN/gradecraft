@@ -27,6 +27,16 @@
 - [x] Recovery-copy safeguards for corrupt Local Storage
 - [x] Guarded restore, scale deletion, and category-reference workflows
 
+## Accessibility and localization quality
+
+- [x] Reusable dialogs explicitly named by their visible headings
+- [x] Dialog close controls use the active English/Hindi locale
+- [x] Controlled dialogs avoid duplicate close-handler callbacks
+- [x] Score-trend chart accessible copy follows the active locale
+- [x] Category-contribution chart labels, empty states, and summaries follow the active locale
+- [x] Decorative contribution-bar geometry is hidden without hiding equivalent text summaries
+- [x] Dialog and Hindi chart semantics have focused regression coverage
+
 ## Quality and release engineering
 
 - [x] Unit, component, integration, regression, and browser journey coverage
@@ -68,6 +78,7 @@
 - [ ] Publish and verify a hosted demo URL if a public demo is desired.
 - [ ] Record positive clean-checkout/GitHub Actions evidence for the exact 2.0.12 release commit before tagging `v2.0.12`.
 - [ ] Smoke-test packaged native startup and export dialogs under the enforced CSP on each platform intended for publication.
+- [ ] Repeat screen-reader/dialog/chart smoke testing in both English and Hindi on at least one real browser before publication.
 
 These items require an actual runner/browser/deployment or target platform and are intentionally not replaced with generated screenshots, mock deployment links, or an assumption that missing status contexts mean success.
 
