@@ -15,6 +15,7 @@ import { createBackup } from "../src/data/backup";
 import { createDefaultData } from "../src/domain/defaults";
 import { DataPage } from "../src/pages/DataPage";
 import { AppProvider } from "../src/state/AppContext";
+import { downloadText } from "../src/utils/download";
 
 function fileWithText(name: string, content: string): File {
   const file = new File(["fixture"], name, { type: "application/json" });
@@ -46,6 +47,24 @@ describe("DataPage data safety", () => {
     await waitFor(() => expect(screen.getByText(/Encrypted backup created/)).toBeInTheDocument());
     expect(passphrase).toHaveValue("");
     expect(confirm).toHaveValue("");
+  });
+
+  it("keeps the passphrase and does not report success when native save is cancelled", async () => {
+    vi.mocked(downloadText).mockResolvedValueOnce(false);
+    render(
+      <AppProvider>
+        <DataPage />
+      </AppProvider>,
+    );
+    const passphrase = screen.getByLabelText("Backup passphrase");
+    const confirm = screen.getByLabelText("Confirm passphrase");
+    fireEvent.change(passphrase, { target: { value: "correct horse battery staple" } });
+    fireEvent.change(confirm, { target: { value: "correct horse battery staple" } });
+    fireEvent.click(screen.getByRole("button", { name: "Export encrypted backup" }));
+    await waitFor(() => expect(downloadText).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/Encrypted backup created/)).not.toBeInTheDocument();
+    expect(passphrase).toHaveValue("correct horse battery staple");
+    expect(confirm).toHaveValue("correct horse battery staple");
   });
 
   it("does not replace local data when restore confirmation is cancelled", async () => {
