@@ -28,6 +28,7 @@ const requiredFiles = [
   "docs/adr/0001-client-only-pwa.md",
   "docs/adr/0007-package-version-source.md",
   "docs/adr/0008-tauri-cross-platform-shell.md",
+  "docs/adr/0009-native-webview-hardening.md",
   ".github/FUNDING.yml",
   ".github/workflows/ci.yml",
   ".github/workflows/e2e.yml",
