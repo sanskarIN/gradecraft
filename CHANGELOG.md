@@ -8,11 +8,17 @@ All notable changes to GradeCraft are documented here.
 
 - ADR 0009 documenting the packaged native webview security boundary, CSP policy, prototype hardening, and release invariants.
 - Manual dispatch support for CI and Native workflows to simplify evidence collection on release candidates.
+- Focused regression coverage for dialog naming/close behavior and Hindi chart accessibility copy.
+- A dedicated English/Hindi chart-message catalog for visualization accessibility/status text.
 
 ### Changed
 
 - CI, E2E, and Native workflows now cancel superseded runs for the same ref so stale commits do not consume runner time or obscure the current verification result.
 - The release gate now treats the native webview security configuration and ADR 0009 as release-critical assets.
+- Reusable dialogs now expose their visible heading as the accessible dialog name and use the active locale for the close control's accessible label.
+- Controlled dialogs now route close-button and native cancel behavior through one close callback path instead of also listening for the programmatic `close` event.
+- Score-trend and category-contribution visualization copy now follows the persisted English/Hindi locale.
+- Contribution charts now use a named accessibility group while keeping textual grade/contribution summaries exposed; decorative bar geometry is hidden from assistive technologies.
 
 ### Security
 
