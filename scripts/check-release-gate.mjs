@@ -25,6 +25,7 @@ const requiredFiles = [
   "docs/accessibility.md",
   "docs/performance.md",
   "docs/platforms.md",
+  "docs/android-content-uri.md",
   "docs/adr/0001-client-only-pwa.md",
   "docs/adr/0007-package-version-source.md",
   "docs/adr/0008-tauri-cross-platform-shell.md",
@@ -131,7 +132,12 @@ for (const command of [
 }
 
 const nativeCi = read(".github/workflows/native.yml");
-for (const command of ["npm run native:check", "npm run android:init", "npm run ios:init"]) {
+for (const command of [
+  "npm run native:check",
+  "npm run android:init",
+  "npm run android:build -- --debug --apk --target aarch64",
+  "npm run ios:init",
+]) {
   if (!nativeCi.includes(command)) failures.push(`Native CI is missing platform gate: ${command}`);
 }
 
