@@ -5,6 +5,7 @@ const tauriDevHost = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
   base: "./",
+  clearScreen: false,
   plugins: [react()],
   build: {
     sourcemap: true,
@@ -14,6 +15,13 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     host: tauriDevHost || false,
+    hmr: tauriDevHost
+      ? {
+          protocol: "ws",
+          host: tauriDevHost,
+          port: 5174,
+        }
+      : undefined,
     watch: {
       ignored: ["**/src-tauri/**"],
     },
