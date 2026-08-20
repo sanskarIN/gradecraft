@@ -3,14 +3,21 @@
 ## Current milestone
 
 **Package version:** 2.0.12  
-**Release state:** Cross-platform source support is implemented for PWA, Windows, macOS, Linux, Android, and iOS/iPadOS; packaged native webviews are now security-hardened and release-gated; positive clean-runner/native-device evidence is still required before calling every platform release artifact green  
+**Release state:** Cross-platform source support is implemented for PWA, Windows, macOS, Linux, Android, and iOS/iPadOS; packaged native webviews are security-hardened and release-gated; dialog/chart accessibility and English/Hindi semantics are hardened; positive clean-runner/native-device evidence is still required before calling every platform release artifact green  
 **Date:** 2026-08-20
+
+## Active verification branch
+
+- Branch: `quality/security-hardening-2.0.12`
+- Pull request: `#20` — `security: harden native webview and release verification`
+- Base branch: `main`
+- The PR intentionally remains unmerged until the exact final head has positive CI, E2E, Native, and CodeQL evidence.
 
 ## Completed product scope
 
 GradeCraft is a privacy-first TypeScript + React application with one shared product implementation delivered as both a Progressive Web App and Tauri 2 native applications. The shared application includes weighted and points grading, custom courses/categories/assignments/scales, GPA, what-if planning, weighted target-score solving, semester organization/search, charts, English/Hindi localization, local persistence/recovery, JSON and CSV portability, encrypted backup files, PWA offline support, accessibility preferences, and responsive layouts.
 
-Native source support now covers:
+Native source support covers:
 
 - Windows
 - macOS
@@ -18,7 +25,7 @@ Native source support now covers:
 - Android
 - iOS/iPadOS
 
-The repository includes unit/domain/data/component/property tests, Playwright browser journeys, CI, E2E, Native CI, CodeQL, Dependabot, release automation, documentation-link checks, secret checks, cross-platform release-readiness checks, web/native version synchronization, production bundle budgets, release-tag validation, coverage artifacts, Playwright diagnostics, and release-gated native webview security controls.
+The repository includes unit/domain/data/component/property tests, Playwright browser journeys, CI, E2E, Native CI, CodeQL, Dependabot, release automation, documentation-link checks, secret checks, cross-platform release-readiness checks, web/native version synchronization, production bundle budgets, release-tag validation, coverage artifacts, Playwright diagnostics, release-gated native webview security controls, and localized dialog/chart accessibility regression coverage.
 
 ## Native security hardening continuation on 2026-08-20
 
@@ -39,13 +46,36 @@ The repository includes unit/domain/data/component/property tests, Playwright br
 - Added `docs/adr/0009-native-webview-hardening.md` and made it a required release asset.
 - Updated `SECURITY.md` with the native webview trust boundary and the new release invariants.
 - Updated `docs/release-readiness.md` with native security verification and smoke-test evidence requirements.
-- Updated `CHANGELOG.md` with the completed hardening work.
+- Updated `docs/architecture.md` so packaged webview security is part of the documented native platform layer.
+- Updated `CHANGELOG.md` and `ROADMAP.md` with the completed hardening work.
 
 ### CI quality-of-life improvements
 
 - Main CI, Playwright E2E, and Native CI now cancel superseded runs for the same ref so stale commits do not consume runner time or obscure the newest verification result.
-- Main CI and Native CI now support manual workflow dispatch for explicit release-evidence collection.
+- Main CI and Native CI support manual workflow dispatch for explicit release-evidence collection.
 - Existing least-privilege workflow permissions remain unchanged.
+
+## Accessibility and localization hardening continuation on 2026-08-20
+
+### Dialog semantics
+
+- Reusable modal dialogs are explicitly named by their visible heading through `aria-labelledby`.
+- Modal close controls no longer expose a hardcoded English-only `Close dialog` accessible name.
+- Dashboard, course, assignment, and grading-scale dialogs pass the active locale's existing cancel label to the reusable modal.
+- Removed the redundant `dialog` `onClose` callback path so controlled close handlers are not double-invoked after programmatic close.
+- Native cancel/Escape behavior continues to route through the controlled close handler.
+- Added focused `Modal` regression coverage for dialog naming, supplied accessible close labels, close-button callbacks, and native cancel callbacks.
+
+### Chart semantics and localization
+
+- Added `src/i18n/charts.ts`, a typed English/Hindi mini-catalog for visualization-specific accessibility/status copy.
+- Score-trend chart accessible names and insufficient-data messages now follow the active locale.
+- Category-contribution chart accessible names, fallback category text, no-grade text, and contribution summaries now follow the active locale.
+- Course charts receive the persisted application locale explicitly.
+- Category-contribution visualization uses a named accessibility `group` so its useful text summaries remain exposed instead of being flattened as an image.
+- Decorative contribution-bar geometry is marked `aria-hidden` because equivalent values are already represented as text.
+- Added Hindi chart regression tests.
+- Expanded `docs/accessibility.md` with dialog and localized-chart verification requirements.
 
 ## Cross-platform continuation completed on 2026-08-20
 
@@ -113,10 +143,11 @@ Native development/build/mobile scripts automatically generate platform icons fr
 - Updated README with the full platform support matrix and exact native/mobile build commands.
 - Updated setup documentation with native prerequisites and first-run commands.
 - Updated development documentation with desktop/mobile commands and cross-platform engineering rules.
-- Updated architecture documentation with explicit shared, web, and native platform layers.
+- Updated architecture documentation with explicit shared, web, native, and packaged-webview security layers.
 - Updated release documentation with per-platform build, smoke-test, data-compatibility, signing, and evidence requirements.
 - Updated release-readiness documentation so source support is not confused with a verified signed release artifact.
-- Updated the changelog with cross-platform additions and the subsequent native security hardening.
+- Updated accessibility documentation with localized dialog/chart checks.
+- Updated the changelog with cross-platform, native-security, accessibility, and localization improvements.
 
 ## Existing 2.0.12 safeguards retained
 
@@ -129,10 +160,11 @@ Native development/build/mobile scripts automatically generate platform icons fr
 - Tag releases run shared verification, dependency audit, Chromium E2E against the already verified production build, retain diagnostics, and package only after gates pass.
 - Deterministic property coverage exercises generated grade calculations, target-score solvers, and CSV edge-label round trips.
 - Packaged native builds have release-gated CSP and prototype-hardening requirements.
+- Dialog and localized-chart semantics now have targeted regression tests in addition to manual accessibility release checks.
 
 ## Verification status for the current continuation
 
-Repository-side source changes are complete on the hardening branch, but the exact branch head still requires positive workflow evidence before being merged or called green. No passing result is fabricated from a missing or pending status context.
+Pull request `#20` is open. Every source/documentation change pushes a new PR head, so GitHub correctly queues fresh CI, E2E, Native, and CodeQL runs and cancels superseded per-ref runs where configured. The final head must be checked after this handoff commit; no earlier green/pending status is treated as evidence for the final head.
 
 Repository-side executable verification is provided by:
 
@@ -141,7 +173,7 @@ Repository-side executable verification is provided by:
 - `.github/workflows/native.yml` for desktop native compile checks and Android/iOS project generation;
 - CodeQL for static security analysis.
 
-The exact latest commit must have positive workflow evidence before the native release state is called green.
+No passing result is fabricated from missing, queued, or superseded workflow contexts.
 
 ## Exact 2.0.12 release gates
 
@@ -178,21 +210,23 @@ Do not label the exact 2.0.12 candidate or an individual native artifact green u
 
 ## Platform release evidence still required
 
-1. Confirm the latest CI, E2E, Native CI, CodeQL, dependency-audit, version-sync, release-gate, bundle-budget, and native-CSP gate results for the exact 2.0.12 release commit.
+1. Confirm CI, E2E, Native CI, CodeQL, dependency-audit, version-sync, release-gate, bundle-budget, and native-CSP gate results for the exact final 2.0.12 release commit.
 2. Build Windows native packages on Windows and smoke-test them, including startup and export dialogs under the enforced CSP.
 3. Build macOS native packages on macOS and smoke-test them, including startup and export dialogs under the enforced CSP.
 4. Build intended Linux package formats on Linux and smoke-test them, including startup and export dialogs under the enforced CSP.
 5. Build Android APK/AAB output and smoke-test an emulator/device before store publication.
 6. Build and sign the iOS/iPadOS artifact on macOS using the intended Apple distribution configuration and smoke-test simulator/device behavior.
 7. Verify backup/encrypted-backup/CSV interoperability between at least one web and one native target.
-8. Capture real screenshots from positively verified target builds and place them in `docs/screenshots/`.
-9. Keep Android keystores, Apple signing certificates, provisioning credentials, and all store secrets outside Git.
-10. Generate and commit a trustworthy npm lockfile only from a successful registry-backed dependency resolution if reproducible transitive dependency locking is desired; no lockfile is fabricated in an offline environment.
+8. Repeat screen-reader/dialog/chart smoke testing in both English and Hindi on at least one real browser before publication.
+9. Capture real screenshots from positively verified target builds and place them in `docs/screenshots/`.
+10. Keep Android keystores, Apple signing certificates, provisioning credentials, and all store secrets outside Git.
+11. Generate and commit a trustworthy npm lockfile only from a successful registry-backed dependency resolution if reproducible transitive dependency locking is desired; no lockfile is fabricated in an offline environment.
 
 ## Open issues
 
-- No known blocker/critical grade-calculation defect is introduced by the cross-platform shell or this security-hardening continuation.
+- No known blocker/critical grade-calculation defect is introduced by the cross-platform shell, native-security hardening, or accessibility/localization continuation.
 - Native build/release evidence remains an external verification item until current Actions and real platform packages are positively verified.
+- Real screenshots, optional hosted-demo verification, and signed/store artifacts remain evidence tasks rather than source-code tasks.
 
 ## Migration notes
 
@@ -202,9 +236,11 @@ Before uninstalling a native application or clearing its application data, users
 
 ## 2.0.12 release notes draft
 
-GradeCraft 2.0.12 delivers the completed privacy-first grade-management experience as one shared application across the web/PWA, Windows, macOS, Linux, Android, and iOS/iPadOS source targets. The release combines weighted target planning, semester organization/search, English/Hindi localization, authenticated portable backups, staged flexible CSV import, stronger data-integrity safeguards, hardened spreadsheet export boundaries, offline PWA behavior, native save dialogs, Tauri desktop/mobile packaging, packaged-webview CSP/prototype hardening, expanded automated tests, executable web/native release gates, diagnostic CI artifacts, tag/version enforcement, and package-derived user-visible versioning protected by synchronization checks.
+GradeCraft 2.0.12 delivers the completed privacy-first grade-management experience as one shared application across the web/PWA, Windows, macOS, Linux, Android, and iOS/iPadOS source targets. The release combines weighted target planning, semester organization/search, English/Hindi localization, authenticated portable backups, staged flexible CSV import, stronger data-integrity safeguards, hardened spreadsheet export boundaries, offline PWA behavior, native save dialogs, Tauri desktop/mobile packaging, packaged-webview CSP/prototype hardening, localized accessible dialogs/charts, expanded automated tests, executable web/native release gates, diagnostic CI artifacts, tag/version enforcement, and package-derived user-visible versioning protected by synchronization checks.
 
-## Native security hardening commits
+## Current continuation commits
+
+### Native security, release engineering, and documentation
 
 - `e201df1` — security(native): enforce restrictive webview CSP
 - `5427f9b` — security(native): freeze Object prototype in packaged app
@@ -217,8 +253,30 @@ GradeCraft 2.0.12 delivers the completed privacy-first grade-management experien
 - `fa9ab75` — docs(security): document native webview protections
 - `dade94e` — docs(changelog): record native security hardening
 - `1ad6642` — docs(release): add native security verification evidence
+- `77620c2` — docs(handoff): record native security continuation
+- `3209fac` — docs(roadmap): mark native security hardening complete
+- `732d020` — docs(architecture): integrate native webview security boundary
 
-## Cross-platform implementation commits
+### Accessibility and English/Hindi visualization semantics
+
+- `83c9b4c` — fix(accessibility): give dialogs localized accessible names
+- `1f0e789` — fix(i18n): localize dashboard dialog close control
+- `551dcc3` — fix(i18n): localize course dialog close controls
+- `2bb62e2` — fix(i18n): localize settings dialog close control
+- `5ecdf26` — test(accessibility): cover dialog naming and close behavior
+- `10cec8a` — docs(accessibility): define localized dialog requirements
+- `038650e` — feat(i18n): add localized chart accessibility copy
+- `6854ef2` — fix(i18n): localize score trend chart semantics
+- `526b2bc` — fix(i18n): localize contribution chart semantics
+- `17cf115` — fix(i18n): pass locale into course charts
+- `db4c718` — test(i18n): cover Hindi chart accessibility copy
+- `aefffc8` — docs(accessibility): document localized chart semantics
+- `e031e35` — fix(accessibility): preserve contribution chart text semantics
+- `97af08a` — test(accessibility): preserve contribution chart text semantics
+- `f17fbec` — docs(roadmap): record accessibility localization hardening
+- `af21fe4` — docs(changelog): record accessibility and chart hardening
+
+## Earlier cross-platform implementation commits
 
 - `63a2095` — feat(native): add Tauri build entrypoint
 - `112630f` — feat(native): add cross-platform Rust manifest
