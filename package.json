@@ -26,7 +26,7 @@
     "native:icons": "tauri icon public/icons/icon.svg",
     "native:dev": "npm run native:icons && tauri dev",
     "native:build": "npm run native:icons && tauri build",
-    "native:check": "cargo check --manifest-path src-tauri/Cargo.toml",
+    "native:check": "npm run native:icons && cargo check --manifest-path src-tauri/Cargo.toml",
     "android:init": "npm run native:icons && tauri android init",
     "android:dev": "npm run native:icons && tauri android dev",
     "android:build": "npm run native:icons && tauri android build",
