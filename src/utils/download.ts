@@ -4,7 +4,7 @@ const WINDOWS_RESERVED_NAME=/^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
 const INVALID_FILENAME_CHARACTERS=/[\u0000-\u001f<>:"/\\|?*]/g;
 
 export function sanitizeDownloadFilename(filename:string):string{
-  const normalized=filename.normalize("NFC").replace(INVALID_FILENAME_CHARACTERS,"-").replace(/-+/g,"-").trim().replace(/[. ]+$/g,"");
+  const normalized=filename.normalize("NFC").replace(INVALID_FILENAME_CHARACTERS,"-").replace(/-+/g,"-").trim().replace(/^[. ]+/g,"").replace(/[. ]+$/g,"");
   const safeBase=normalized||"gradecraft-export";
   const reservedSafe=WINDOWS_RESERVED_NAME.test(safeBase)?`_${safeBase}`:safeBase;
   const separator=reservedSafe.lastIndexOf(".");
