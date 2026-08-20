@@ -1,4 +1,4 @@
-import { isTauri } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 
 function fileExtension(filename: string): string {
   const separator = filename.lastIndexOf(".");
@@ -13,16 +13,19 @@ function filterName(type: string): string {
 
 export async function downloadText(filename: string, content: string, type = "text/plain"): Promise<boolean> {
   if (isTauri()) {
-    const [{ save }, { writeTextFile }] = await Promise.all([
-      import("@tauri-apps/plugin-dialog"),
-      import("@tauri-apps/plugin-fs"),
-    ]);
+    const { save } = await import("@tauri-apps/plugin-dialog");
     const selectedPath = await save({
       defaultPath: filename,
       filters: [{ name: filterName(type), extensions: [fileExtension(filename)] }],
     });
     if (!selectedPath) return false;
-    await writeTextFile(selectedPath, content);
+
+    if (selectedPath.startsWith("content://")) {
+      await invoke("write_android_content_uri", { uri: selectedPath, content });
+    } else {
+      const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+      await writeTextFile(selectedPath, content);
+    }
     return true;
   }
 
