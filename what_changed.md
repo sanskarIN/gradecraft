@@ -3,7 +3,7 @@
 ## Current milestone
 
 **Package version:** 2.0.12  
-**Release state:** Cross-platform source support is implemented for PWA, Windows, macOS, Linux, Android, and iOS/iPadOS; positive clean-runner/native-device evidence is still required before calling every platform release artifact green  
+**Release state:** Cross-platform source support is implemented for PWA, Windows, macOS, Linux, Android, and iOS/iPadOS; packaged native webviews are now security-hardened and release-gated; positive clean-runner/native-device evidence is still required before calling every platform release artifact green  
 **Date:** 2026-08-20
 
 ## Completed product scope
@@ -18,7 +18,34 @@ Native source support now covers:
 - Android
 - iOS/iPadOS
 
-The repository includes unit/domain/data/component/property tests, Playwright browser journeys, CI, E2E, Native CI, CodeQL, Dependabot, release automation, documentation-link checks, secret checks, cross-platform release-readiness checks, web/native version synchronization, production bundle budgets, release-tag validation, coverage artifacts, and Playwright diagnostics.
+The repository includes unit/domain/data/component/property tests, Playwright browser journeys, CI, E2E, Native CI, CodeQL, Dependabot, release automation, documentation-link checks, secret checks, cross-platform release-readiness checks, web/native version synchronization, production bundle budgets, release-tag validation, coverage artifacts, Playwright diagnostics, and release-gated native webview security controls.
+
+## Native security hardening continuation on 2026-08-20
+
+### Packaged webview security
+
+- Replaced the permissive `csp: null` native configuration with an explicit restrictive Content Security Policy.
+- Limited packaged content to local application sources plus Tauri IPC endpoints required by native APIs.
+- Allowed only the local/data/blob image sources needed by GradeCraft UI behavior.
+- Blocked objects, frames, framing, off-origin form targets, mutable base URLs, and wildcard CSP sources.
+- Enabled Tauri `freezePrototype` so packaged custom-protocol pages freeze `Object.prototype`.
+- Kept Tauri asset CSP rewriting enabled; the release gate now rejects configuration that explicitly disables it.
+- Preserved the existing local-window capability model: the `main` window receives only core defaults plus dialog/file permissions required for user-selected exports.
+
+### Release-regression protection
+
+- Expanded `scripts/check-release-gate.mjs` so packaged native CSP is mandatory.
+- The release gate checks required CSP directives, rejects wildcard sources, requires `freezePrototype: true`, and rejects explicit disabling of Tauri asset CSP modification.
+- Added `docs/adr/0009-native-webview-hardening.md` and made it a required release asset.
+- Updated `SECURITY.md` with the native webview trust boundary and the new release invariants.
+- Updated `docs/release-readiness.md` with native security verification and smoke-test evidence requirements.
+- Updated `CHANGELOG.md` with the completed hardening work.
+
+### CI quality-of-life improvements
+
+- Main CI, Playwright E2E, and Native CI now cancel superseded runs for the same ref so stale commits do not consume runner time or obscure the newest verification result.
+- Main CI and Native CI now support manual workflow dispatch for explicit release-evidence collection.
+- Existing least-privilege workflow permissions remain unchanged.
 
 ## Cross-platform continuation completed on 2026-08-20
 
@@ -75,20 +102,21 @@ Native development/build/mobile scripts automatically generate platform icons fr
 - Native CI validates Android project generation on Linux with Android tooling.
 - Native CI validates iOS project generation on macOS.
 - Expanded `scripts/check-version-sync.mjs` to require `src-tauri/Cargo.toml` to match `package.json` and Tauri to source its application version from `../package.json`.
-- Expanded `scripts/check-release-gate.mjs` so native source files, native security capabilities, native scripts, `docs/platforms.md`, ADR 0008, and Native CI are required release assets.
-- The release gate now checks the Tauri identifier, all-target desktop bundle setting, shared `dist/` frontend path, required native permissions, and required Rust plugins.
+- Expanded `scripts/check-release-gate.mjs` so native source files, native security capabilities, native scripts, `docs/platforms.md`, ADR 0008, ADR 0009, and Native CI are required release assets.
+- The release gate checks the Tauri identifier, all-target desktop bundle setting, shared `dist/` frontend path, required native permissions, required Rust plugins, and packaged webview security baseline.
 
 ### Documentation
 
 - Added `docs/platforms.md` with complete web, Windows, macOS, Linux, Android, and iOS/iPadOS prerequisites and commands.
 - Added `docs/adr/0008-tauri-cross-platform-shell.md` documenting the one-codebase Tauri decision.
+- Added `docs/adr/0009-native-webview-hardening.md` documenting native CSP/prototype/capability security decisions.
 - Updated README with the full platform support matrix and exact native/mobile build commands.
 - Updated setup documentation with native prerequisites and first-run commands.
 - Updated development documentation with desktop/mobile commands and cross-platform engineering rules.
 - Updated architecture documentation with explicit shared, web, and native platform layers.
 - Updated release documentation with per-platform build, smoke-test, data-compatibility, signing, and evidence requirements.
 - Updated release-readiness documentation so source support is not confused with a verified signed release artifact.
-- Updated the 2.0.12 changelog with cross-platform additions, changes, fixes, and security boundaries.
+- Updated the changelog with cross-platform additions and the subsequent native security hardening.
 
 ## Existing 2.0.12 safeguards retained
 
@@ -100,10 +128,11 @@ Native development/build/mobile scripts automatically generate platform icons fr
 - Release tags must match `package.json` exactly.
 - Tag releases run shared verification, dependency audit, Chromium E2E against the already verified production build, retain diagnostics, and package only after gates pass.
 - Deterministic property coverage exercises generated grade calculations, target-score solvers, and CSV edge-label round trips.
+- Packaged native builds have release-gated CSP and prototype-hardening requirements.
 
-## Verification status for the cross-platform continuation
+## Verification status for the current continuation
 
-The current execution sandbox cannot resolve external hosts from its shell, so it could not clone the repository or perform registry-backed `npm install` locally. No local pass result is fabricated.
+Repository-side source changes are complete on the hardening branch, but the exact branch head still requires positive workflow evidence before being merged or called green. No passing result is fabricated from a missing or pending status context.
 
 Repository-side executable verification is provided by:
 
@@ -149,10 +178,10 @@ Do not label the exact 2.0.12 candidate or an individual native artifact green u
 
 ## Platform release evidence still required
 
-1. Confirm the latest CI, E2E, Native CI, CodeQL, dependency-audit, version-sync, release-gate, and bundle-budget results for the exact 2.0.12 release commit.
-2. Build Windows native packages on Windows and smoke-test them.
-3. Build macOS native packages on macOS and smoke-test them.
-4. Build intended Linux package formats on Linux and smoke-test them.
+1. Confirm the latest CI, E2E, Native CI, CodeQL, dependency-audit, version-sync, release-gate, bundle-budget, and native-CSP gate results for the exact 2.0.12 release commit.
+2. Build Windows native packages on Windows and smoke-test them, including startup and export dialogs under the enforced CSP.
+3. Build macOS native packages on macOS and smoke-test them, including startup and export dialogs under the enforced CSP.
+4. Build intended Linux package formats on Linux and smoke-test them, including startup and export dialogs under the enforced CSP.
 5. Build Android APK/AAB output and smoke-test an emulator/device before store publication.
 6. Build and sign the iOS/iPadOS artifact on macOS using the intended Apple distribution configuration and smoke-test simulator/device behavior.
 7. Verify backup/encrypted-backup/CSV interoperability between at least one web and one native target.
@@ -162,7 +191,7 @@ Do not label the exact 2.0.12 candidate or an individual native artifact green u
 
 ## Open issues
 
-- No known blocker/critical grade-calculation defect is introduced by the cross-platform shell design.
+- No known blocker/critical grade-calculation defect is introduced by the cross-platform shell or this security-hardening continuation.
 - Native build/release evidence remains an external verification item until current Actions and real platform packages are positively verified.
 
 ## Migration notes
@@ -173,7 +202,21 @@ Before uninstalling a native application or clearing its application data, users
 
 ## 2.0.12 release notes draft
 
-GradeCraft 2.0.12 delivers the completed privacy-first grade-management experience as one shared application across the web/PWA, Windows, macOS, Linux, Android, and iOS/iPadOS source targets. The release combines weighted target planning, semester organization/search, English/Hindi localization, authenticated portable backups, staged flexible CSV import, stronger data-integrity safeguards, hardened spreadsheet export boundaries, offline PWA behavior, native save dialogs, Tauri desktop/mobile packaging, expanded automated tests, executable web/native release gates, diagnostic CI artifacts, tag/version enforcement, and package-derived user-visible versioning protected by synchronization checks.
+GradeCraft 2.0.12 delivers the completed privacy-first grade-management experience as one shared application across the web/PWA, Windows, macOS, Linux, Android, and iOS/iPadOS source targets. The release combines weighted target planning, semester organization/search, English/Hindi localization, authenticated portable backups, staged flexible CSV import, stronger data-integrity safeguards, hardened spreadsheet export boundaries, offline PWA behavior, native save dialogs, Tauri desktop/mobile packaging, packaged-webview CSP/prototype hardening, expanded automated tests, executable web/native release gates, diagnostic CI artifacts, tag/version enforcement, and package-derived user-visible versioning protected by synchronization checks.
+
+## Native security hardening commits
+
+- `e201df1` — security(native): enforce restrictive webview CSP
+- `5427f9b` — security(native): freeze Object prototype in packaged app
+- `cd84a97` — test(release): enforce native webview security baseline
+- `bcb39c9` — ci: cancel superseded quality runs
+- `f95dc19` — ci(e2e): cancel superseded browser runs
+- `4648cb4` — ci(native): cancel superseded platform runs
+- `b63f915` — docs(adr): record native webview hardening decision
+- `e2e7550` — test(release): require native security ADR
+- `fa9ab75` — docs(security): document native webview protections
+- `dade94e` — docs(changelog): record native security hardening
+- `1ad6642` — docs(release): add native security verification evidence
 
 ## Cross-platform implementation commits
 
