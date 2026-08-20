@@ -14,11 +14,17 @@ All notable changes to GradeCraft are documented here.
 ### Changed
 
 - CI, E2E, and Native workflows now cancel superseded runs for the same ref so stale commits do not consume runner time or obscure the current verification result.
+- CI, E2E, and release diagnostic uploads now use `actions/upload-artifact@v6`, moving artifact handling to the Node 24 action runtime used by current GitHub-hosted runners.
 - The release gate now treats the native webview security configuration and ADR 0009 as release-critical assets.
 - Reusable dialogs now expose their visible heading as the accessible dialog name and use the active locale for the close control's accessible label.
 - Controlled dialogs now route close-button and native cancel behavior through one close callback path instead of also listening for the programmatic `close` event.
 - Score-trend and category-contribution visualization copy now follows the persisted English/Hindi locale.
 - Contribution charts now use a named accessibility group while keeping textual grade/contribution summaries exposed; decorative bar geometry is hidden from assistive technologies.
+
+### Fixed
+
+- Strict TypeScript builds now accept the application error boundary because overridden React class members are explicitly marked with `override`.
+- Error-boundary and Settings regression fixtures now satisfy strict JSX/Testing Library typing instead of blocking CI and the Playwright production web-server build.
 
 ### Security
 
@@ -26,6 +32,7 @@ All notable changes to GradeCraft are documented here.
 - Native CSP blocks wildcard sources, objects, frames, framing, off-origin form targets, and mutable base URLs.
 - Packaged custom-protocol pages now freeze `Object.prototype`.
 - Tauri asset CSP rewriting is explicitly protected from being disabled by the release gate.
+- Vite is patched from 6.0.7 to 6.4.3 so network-exposed development/preview workflows include the current 6.x fixes for reviewed dev-server file-read and `server.fs.deny` bypass vulnerabilities.
 
 ## [2.0.12] - 2026-08-19
 
