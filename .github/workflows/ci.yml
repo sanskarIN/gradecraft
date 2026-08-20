@@ -42,4 +42,14 @@ jobs:
           retention-days: 14
       - run: npm run build
       - run: npm run perf:budget
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - run: npm install --ignore-scripts
       - run: npm audit --audit-level=high
