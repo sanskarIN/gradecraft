@@ -1,6 +1,8 @@
 # Architecture
 
-GradeCraft is a modular client-side monolith. No backend is required for core use, and the application remains useful without an account, cloud provider, or remote API.
+GradeCraft is a modular client-side monolith with thin platform shells. No backend is required for core use, and the application remains useful without an account, cloud provider, or remote API.
+
+The React/TypeScript application is the product implementation for every target. The browser/PWA runs it directly, while Tauri 2 embeds the same frontend in native shells for Windows, macOS, Linux, Android, and iOS/iPadOS.
 
 ## Layers
 
@@ -9,13 +11,42 @@ GradeCraft is a modular client-side monolith. No backend is required for core us
 3. **Internationalization (`src/i18n`)** — typed English/Hindi catalogs plus specialized portable-data message catalogs.
 4. **State (`src/state`)** — reducer/context wiring domain data, settings, persistence, theme, accessibility, and document language to the application.
 5. **UI (`src/components`, `src/pages`)** — reusable components and route-level workflows.
-6. **Platform (`public/sw.js`, `index.html`)** — offline cache shell, PWA manifest integration, and browser security policy.
+6. **Shared platform adapters (`src/utils`, startup code)** — small runtime-aware boundaries for behavior that differs between browsers and native WebViews, such as file exports and service-worker registration.
+7. **Web platform (`public/sw.js`, `public/manifest.webmanifest`, `index.html`)** — offline cache shell, PWA manifest integration, and browser security policy.
+8. **Native platform (`src-tauri`)** — Tauri/Rust entry points, application/bundle metadata, mobile project generation, native plugin registration, and capability permissions.
 
-Dependency flow points inward: pages depend on components/state/domain/data as needed; pure domain logic does not depend on React or the browser UI.
+Dependency flow points inward: pages depend on components/state/domain/data as needed; pure domain logic does not depend on React or a specific platform shell. Native code does not reimplement grading or persistence rules.
+
+## Cross-platform shell
+
+`src-tauri/src/lib.rs` is the shared Tauri entry point used by desktop and mobile targets. `src-tauri/src/main.rs` is the desktop executable entry point. `src-tauri/tauri.conf.json` points at the same Vite development server and `dist/` production frontend used by the PWA.
+
+Tauri is intentionally a thin shell. Native plugins are added only when browser behavior is insufficient. Current native integration is limited to system save dialogs and filesystem writes for user-requested exports.
+
+`src-tauri/capabilities/default.json` associates those plugin permissions only with the local `main` window. Remote web content is not granted native capabilities.
+
+See [`adr/0008-tauri-cross-platform-shell.md`](adr/0008-tauri-cross-platform-shell.md) and [`platforms.md`](platforms.md).
+
+## Runtime-aware browser/native behavior
+
+### Service workers
+
+The PWA service worker is registered only in production on HTTP/HTTPS origins. A packaged Tauri application loads bundled frontend resources and therefore intentionally skips browser service-worker registration.
+
+### File exports
+
+`src/utils/download.ts` is the shared export adapter:
+
+- browser/PWA targets create a `Blob` and use the normal browser download flow;
+- Tauri targets open the native save dialog and write to the selected platform path/URI through the filesystem plugin.
+
+This keeps JSON backup, encrypted backup, and CSV formats identical across platforms while allowing Android/iOS to use their native document-provider URI models.
 
 ## Persistence and compatibility
 
 Schema version `1` is stored under a namespaced Local Storage key. Each save preserves the previous serialized record as a recovery copy before replacing the primary record. Invalid/corrupt data falls back to recovery and then a clean default dataset.
+
+The same storage API is used in browsers and Tauri system WebViews. Each installed native app receives its own application WebView storage. Users should export a backup before uninstalling an application or clearing its application data when the data must be retained.
 
 Backward-compatible optional fields such as `Course.semester` and `Settings.language` do not require a schema-version bump. The schema validator accepts older v1 data where those fields are absent and rejects malformed values when they are present.
 
@@ -27,7 +58,7 @@ Grade math remains in `src/domain/gradeMath.ts`. What-if scenarios clone/overrid
 
 ## Routing
 
-A small hash router avoids requiring server rewrite configuration for static PWA hosts.
+A small hash router avoids requiring server rewrite configuration for static PWA hosts and also works with packaged native application URLs.
 
 ## CSV import/export boundary
 
@@ -43,7 +74,7 @@ Standard JSON backups wrap the complete v1 app state in a versioned GradeCraft e
 
 ### Encrypted backups
 
-Encrypted backup support is provider-agnostic. GradeCraft encrypts the standard backup JSON in the browser with AES-256-GCM. The key is derived from the user passphrase with PBKDF2-SHA-256, a random 16-byte salt, and an iteration count recorded in the encrypted envelope. Each export uses a random 12-byte IV.
+Encrypted backup support is provider-agnostic. GradeCraft encrypts the standard backup JSON in the client with AES-256-GCM. The key is derived from the user passphrase with PBKDF2-SHA-256, a random 16-byte salt, and an iteration count recorded in the encrypted envelope. Each export uses a random 12-byte IV.
 
 Only salt, IV, KDF/algorithm metadata, iteration count, and ciphertext are exported. The passphrase is not persisted. Users may move the resulting encrypted file through any storage provider they choose; provider authentication is deliberately outside GradeCraft.
 
@@ -51,7 +82,9 @@ Only salt, IV, KDF/algorithm metadata, iteration count, and ciphertext are expor
 
 CSV, JSON backup files, encrypted backup envelopes, and Local Storage contents are untrusted. Parsers validate types/ranges before data is incorporated. No dynamic HTML injection is used; React escapes rendered strings by default.
 
-`index.html` applies a restrictive Content Security Policy and no-referrer policy. These controls reduce exposure but do not change the fundamental browser trust boundary: code executing with the application's origin privileges can access in-use local data that the browser can access.
+`index.html` applies a restrictive Content Security Policy and no-referrer policy. These controls reduce exposure but do not change the fundamental WebView/origin trust boundary: code executing with the application's privileges can access in-use local data that the runtime can access.
+
+Native plugin access is additionally constrained by Tauri capabilities. New native permissions require an explicit review because they expand what the local frontend can request from the operating system.
 
 The application-level error boundary provides a safe recovery UI, while structured logging records redacted/safe metadata instead of raw user data or parser/storage exception text.
 
@@ -65,18 +98,26 @@ Application semantic versions are deliberately excluded from localization catalo
 
 ## Version source of truth
 
-`package.json` is the canonical application/release version source. `AboutPage` imports the package version and renders it with the localized application name, so the user-visible version cannot lag behind package metadata because of a stale translation string.
+`package.json` is the canonical application/release version source. `AboutPage` imports the package version and renders it with the localized application name. `src-tauri/tauri.conf.json` also points to `../package.json` for the native application version.
+
+Cargo requires its own package version in `src-tauri/Cargo.toml`; the repository version check enforces that it exactly matches `package.json`.
 
 `scripts/check-version-sync.mjs` verifies that:
 
 - the package version is valid semantic versioning,
 - `CHANGELOG.md` contains a dated heading for that version,
 - `what_changed.md` declares the same package version,
-- the About screen remains wired to package metadata, and
+- the About screen remains wired to package metadata,
+- Cargo carries the same package version,
+- Tauri continues to source its application version from `package.json`, and
 - English/Hindi catalogs do not reintroduce hardcoded GradeCraft semantic-version strings.
 
-See [`adr/0007-package-version-source.md`](adr/0007-package-version-source.md) for the architectural decision.
+See [`adr/0007-package-version-source.md`](adr/0007-package-version-source.md) for the versioning decision.
 
 ## Verification architecture
 
-`npm run verify` composes static typing, linting, repository formatting, documentation-link checking, secret scanning, version synchronization, the release-readiness gate, unit/component/property coverage, the production build, and production bundle budgets. Playwright remains a separate browser gate because it starts the production preview server and exercises end-to-end journeys. The release workflow additionally enforces package/tag consistency and the dependency audit before publishing an artifact.
+`npm run verify` composes static typing, linting, repository formatting, documentation-link checking, secret scanning, version synchronization, the release-readiness gate, unit/component/property coverage, the production build, and production bundle budgets. Playwright remains a separate browser gate because it starts the production preview server and exercises end-to-end journeys.
+
+`npm run native:check` validates the Rust/Tauri layer. `.github/workflows/native.yml` runs that native core check across Ubuntu, Windows, and macOS and also validates Android/iOS project generation on appropriate runners.
+
+The release process requires both the shared web quality evidence and relevant native platform evidence before a platform package is called release-ready.
