@@ -13,7 +13,7 @@ The React/TypeScript application is the product implementation for every target.
 5. **UI (`src/components`, `src/pages`)** — reusable components and route-level workflows.
 6. **Shared platform adapters (`src/utils`, startup code)** — small runtime-aware boundaries for behavior that differs between browsers and native WebViews, such as file exports and service-worker registration.
 7. **Web platform (`public/sw.js`, `public/manifest.webmanifest`, `index.html`)** — offline cache shell, PWA manifest integration, and browser security policy.
-8. **Native platform (`src-tauri`)** — Tauri/Rust entry points, application/bundle metadata, mobile project generation, native plugin registration, and capability permissions.
+8. **Native platform (`src-tauri`)** — Tauri/Rust entry points, application/bundle metadata, mobile project generation, native plugin registration, capability permissions, and packaged-WebView security configuration.
 
 Dependency flow points inward: pages depend on components/state/domain/data as needed; pure domain logic does not depend on React or a specific platform shell. Native code does not reimplement grading or persistence rules.
 
@@ -25,7 +25,9 @@ Tauri is intentionally a thin shell. Native plugins are added only when browser 
 
 `src-tauri/capabilities/default.json` associates those plugin permissions only with the local `main` window. Remote web content is not granted native capabilities.
 
-See [`adr/0008-tauri-cross-platform-shell.md`](adr/0008-tauri-cross-platform-shell.md) and [`platforms.md`](platforms.md).
+Packaged Tauri windows enforce an explicit CSP that defaults application content to local sources, allows only the IPC connection endpoints required by Tauri, and blocks objects, frames, framing, wildcard sources, off-origin form targets, and mutable base URLs. Packaged custom-protocol pages also use Tauri's `freezePrototype` hardening. These settings are checked by the release gate rather than treated as optional documentation-only guidance.
+
+See [`adr/0008-tauri-cross-platform-shell.md`](adr/0008-tauri-cross-platform-shell.md), [`adr/0009-native-webview-hardening.md`](adr/0009-native-webview-hardening.md), and [`platforms.md`](platforms.md).
 
 ## Runtime-aware browser/native behavior
 
@@ -82,9 +84,9 @@ Only salt, IV, KDF/algorithm metadata, iteration count, and ciphertext are expor
 
 CSV, JSON backup files, encrypted backup envelopes, and Local Storage contents are untrusted. Parsers validate types/ranges before data is incorporated. No dynamic HTML injection is used; React escapes rendered strings by default.
 
-`index.html` applies a restrictive Content Security Policy and no-referrer policy. These controls reduce exposure but do not change the fundamental WebView/origin trust boundary: code executing with the application's privileges can access in-use local data that the runtime can access.
+`index.html` applies a restrictive Content Security Policy and no-referrer policy for browser/PWA delivery. Packaged native windows use the separate Tauri CSP/prototype-hardening policy described above because browser-page policy should not be assumed to cover the privileged native WebView boundary automatically. These controls reduce exposure but do not change the fundamental WebView/origin trust boundary: code executing with the application's privileges can access in-use local data that the runtime can access.
 
-Native plugin access is additionally constrained by Tauri capabilities. New native permissions require an explicit review because they expand what the local frontend can request from the operating system.
+Native plugin access is additionally constrained by Tauri capabilities. New native permissions require an explicit review because they expand what the local frontend can request from the operating system. `scripts/check-release-gate.mjs` protects the approved CSP and capability baseline from silent regression.
 
 The application-level error boundary provides a safe recovery UI, while structured logging records redacted/safe metadata instead of raw user data or parser/storage exception text.
 

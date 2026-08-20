@@ -26,6 +26,24 @@
 - [x] Import mapping UI for arbitrary third-party CSV headers
 - [x] Recovery-copy safeguards for corrupt Local Storage
 - [x] Guarded restore, scale deletion, and category-reference workflows
+- [x] Portable browser/native export filename sanitization
+- [x] Windows reserved-device filename protection
+- [x] Unicode-normalized, extension-preserving export names with bounded length
+
+## Accessibility and localization quality
+
+- [x] Reusable dialogs explicitly named by their visible headings
+- [x] Dialog close controls use the active English/Hindi locale
+- [x] Controlled dialogs avoid duplicate close-handler callbacks
+- [x] Score-trend chart accessible copy follows the active locale
+- [x] Category-contribution chart labels, empty states, and summaries follow the active locale
+- [x] Decorative contribution-bar geometry is hidden without hiding equivalent text summaries
+- [x] Dialog and Hindi chart semantics have focused regression coverage
+- [x] Domain validation exposes stable locale-neutral issue codes
+- [x] Assignment validation feedback follows English/Hindi locale
+- [x] Course/category validation feedback follows English/Hindi locale
+- [x] Grading-scale validation feedback follows English/Hindi locale
+- [x] Dynamic weighted-category validation values are localized and regression-tested
 
 ## Quality and release engineering
 
@@ -35,10 +53,23 @@
 - [x] Static release-readiness gate
 - [x] Production bundle-size budgets
 - [x] CodeQL and dependency-audit workflows
+- [x] Dependency audit runs independently from the main quality job
 - [x] CI coverage and Playwright diagnostic artifacts
 - [x] Release tag/package-version validation
 - [x] Tag releases gated by verification, dependency audit, and Chromium E2E
 - [x] Release-readiness evidence matrix and final release procedure
+- [x] Superseded CI/E2E/native runs cancel automatically per ref
+- [x] Manual CI/native dispatch available for release evidence collection
+- [x] Current artifact uploads use the Node 24 `actions/upload-artifact@v6` runtime
+
+## Native application security
+
+- [x] Restrictive packaged Tauri Content Security Policy
+- [x] Packaged custom-protocol `Object.prototype` freezing
+- [x] Window-scoped export-only native capability boundary
+- [x] Release gate rejects missing/wildcard native CSP and disabled prototype hardening
+- [x] Release gate protects Tauri asset CSP rewriting
+- [x] Native webview threat boundary documented in ADR 0009 and `SECURITY.md`
 
 ## 2.0.12 — Version integrity and release preparation
 
@@ -56,7 +87,10 @@
 - [ ] Capture real screenshots from a positively verified production build.
 - [ ] Publish and verify a hosted demo URL if a public demo is desired.
 - [ ] Record positive clean-checkout/GitHub Actions evidence for the exact 2.0.12 release commit before tagging `v2.0.12`.
+- [ ] Smoke-test packaged native startup and export dialogs under the enforced CSP on each platform intended for publication.
+- [ ] Repeat screen-reader/dialog/chart/validation smoke testing in both English and Hindi on at least one real browser before publication.
+- [ ] Verify sanitized export defaults and successful JSON/CSV/encrypted-backup writes on each native platform intended for publication.
 
-These items require an actual runner/browser/deployment and are intentionally not replaced with generated screenshots, mock deployment links, or an assumption that missing status contexts mean success.
+These items require an actual runner/browser/deployment or target platform and are intentionally not replaced with generated screenshots, mock deployment links, or an assumption that missing status contexts mean success.
 
 Privacy-first offline use remains the product baseline. Cloud storage is optional transport chosen by the user; GradeCraft does not require an account or receive backup passphrases.

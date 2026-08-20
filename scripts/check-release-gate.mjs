@@ -28,6 +28,7 @@ const requiredFiles = [
   "docs/adr/0001-client-only-pwa.md",
   "docs/adr/0007-package-version-source.md",
   "docs/adr/0008-tauri-cross-platform-shell.md",
+  "docs/adr/0009-native-webview-hardening.md",
   ".github/FUNDING.yml",
   ".github/workflows/ci.yml",
   ".github/workflows/e2e.yml",
@@ -157,6 +158,30 @@ if (tauriConfig.bundle?.active !== true || tauriConfig.bundle?.targets !== "all"
 }
 if (tauriConfig.build?.frontendDist !== "../dist") {
   failures.push("Tauri frontendDist must consume the verified shared dist/ frontend.");
+}
+
+const nativeSecurity = tauriConfig.app?.security;
+const nativeCsp = typeof nativeSecurity?.csp === "string" ? nativeSecurity.csp : "";
+if (!nativeCsp) failures.push("Tauri CSP must be enabled for packaged webviews.");
+for (const directive of [
+  "default-src 'self'",
+  "connect-src ipc: http://ipc.localhost",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-src 'none'",
+  "frame-ancestors 'none'",
+]) {
+  if (!nativeCsp.includes(directive)) failures.push(`Tauri CSP is missing required directive: ${directive}`);
+}
+if (/(^|[;\s])\*([;\s]|$)/.test(nativeCsp)) {
+  failures.push("Tauri CSP must not contain a wildcard source.");
+}
+if (nativeSecurity?.freezePrototype !== true) {
+  failures.push("Tauri must freeze Object.prototype for packaged custom-protocol pages.");
+}
+if (nativeSecurity?.dangerousDisableAssetCspModification === true) {
+  failures.push("Tauri asset CSP modification must remain enabled.");
 }
 
 const capability = JSON.parse(read("src-tauri/capabilities/default.json"));
