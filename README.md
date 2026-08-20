@@ -8,17 +8,36 @@
 
 <p align="center">
   <a href="https://github.com/sanskarIN/gradecraft/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/sanskarIN/gradecraft/actions/workflows/ci.yml/badge.svg" /></a>
+  <a href="https://github.com/sanskarIN/gradecraft/actions/workflows/native.yml"><img alt="Native CI" src="https://github.com/sanskarIN/gradecraft/actions/workflows/native.yml/badge.svg" /></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-blue.svg" /></a>
   <a href="https://buymeacoffee.com/sanskarIN"><img alt="Buy Me a Coffee" src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-sanskarIN-FFDD00?logo=buy-me-a-coffee&logoColor=000000" /></a>
 </p>
 
-**GradeCraft** is a privacy-first, offline-capable student grade calculator built as a TypeScript + React progressive web app. It supports weighted and points-based grading, what-if planning, custom GPA scales, semester organization, charts, encrypted backups, flexible CSV transfer, English/Hindi UI, and accessible keyboard-friendly workflows.
+**GradeCraft** is a privacy-first, offline-capable student grade calculator built from one TypeScript + React codebase and delivered as both a Progressive Web App and native Tauri applications. It supports weighted and points-based grading, what-if planning, custom GPA scales, semester organization, charts, encrypted backups, flexible CSV transfer, English/Hindi UI, and accessible keyboard-friendly workflows.
 
 > **Made by the Sanskar**
 
+## Platforms
+
+GradeCraft now targets the major web, desktop, and mobile platforms from the same application codebase:
+
+| Platform | Support | Delivery |
+| --- | --- | --- |
+| Web | Supported | Progressive Web App / static `dist/` build |
+| Windows | Supported | Tauri native desktop application |
+| macOS | Supported | Tauri native desktop application |
+| Linux | Supported | Tauri native desktop application |
+| Android | Supported | Tauri Android project, APK/AAB builds |
+| iOS / iPadOS | Supported | Tauri iOS project and IPA workflow on macOS |
+| ChromeOS | Supported through modern browser/PWA | Progressive Web App |
+
+Native packaging uses Tauri 2 while the PWA remains a first-class target. The grade engine, data schema, backups, CSV format, localization, UI, and tests stay shared instead of being reimplemented per operating system.
+
+See [`docs/platforms.md`](docs/platforms.md) for platform prerequisites, native build commands, Android executable/package commands, iOS requirements, signing boundaries, artifact locations, and troubleshooting.
+
 ## Screenshots
 
-Real release screenshots should be captured from the verified built application and placed in `docs/screenshots/`. The repository does not use misleading mock screenshots as proof of functionality.
+Real release screenshots should be captured from verified built applications and placed in `docs/screenshots/`. The repository does not use misleading mock screenshots as proof of functionality.
 
 ## Features
 
@@ -34,9 +53,11 @@ Real release screenshots should be captured from the verified built application 
 - CSV import with reviewable arbitrary header mapping and common alias suggestions
 - Full JSON backup/restore
 - Optional authenticated encrypted backup files for storage with any user-chosen provider
-- Privacy-first local browser storage with a recovery copy and delete controls
+- Privacy-first local browser/WebView storage with a recovery copy and delete controls
 - English and Hindi interface catalogs with a persisted language setting
 - Offline PWA shell with service-worker caching
+- Native Windows, macOS, Linux, Android, and iOS shells through Tauri 2
+- Native save dialogs for JSON, encrypted-backup, and CSV exports
 - Light, dark, and system themes
 - Reduced-motion and compact accessibility preferences
 - Responsive phone/tablet/desktop layouts
@@ -44,21 +65,54 @@ Real release screenshots should be captured from the verified built application 
 - Application-level error recovery UI
 - No account, backend, analytics, or required cloud service
 
+## Privacy model
+
+Grade data is stored locally in the current browser or installed application's WebView storage. GradeCraft does not require sign-in or transmit grades, backup contents, or backup passphrases to a GradeCraft server. Imports are parsed locally.
+
+Native packaging does not introduce a backend. Tauri capabilities are scoped to the local GradeCraft window and currently expose only the system-dialog/file-write functionality required to save user-requested exports.
+
+See [`PRIVACY.md`](PRIVACY.md), [`SECURITY.md`](SECURITY.md), and [`docs/architecture.md`](docs/architecture.md).
+
 ## Encrypted backups
 
-Encrypted backup export is optional. GradeCraft derives an encryption key from the passphrase in the browser, encrypts the backup with authenticated encryption, and downloads only the encrypted backup file. The passphrase is not stored by GradeCraft and must be kept separately by the user. The encrypted file can then be stored with any provider the user chooses.
+Encrypted backup export is optional. GradeCraft derives an encryption key from the passphrase in the client, encrypts the backup with authenticated encryption, and saves only the encrypted backup file. The passphrase is not stored by GradeCraft and must be kept separately by the user.
 
 Losing the passphrase makes the encrypted backup unrecoverable. This is intentional: GradeCraft has no server-side recovery key.
 
-## Supported platforms
-
-GradeCraft targets modern evergreen browsers on desktop and mobile. It can be installed as a PWA where the browser and operating system support web-app installation.
+The same standard/encrypted backup formats are used on web, desktop, and mobile so users can move their own data between platforms.
 
 ## Tech stack
 
-TypeScript, React 19, Vite, Vitest, Testing Library, Playwright, ESLint, GitHub Actions, CodeQL, Web Crypto, browser Local Storage, and Service Worker APIs.
+### Shared application
 
-## Quick start
+- TypeScript
+- React 19
+- Vite
+- Web Crypto
+- Local Storage
+- Service Worker APIs for the PWA target
+
+### Native shell
+
+- Tauri 2
+- Rust
+- Tauri Dialog plugin
+- Tauri File System plugin
+- WebView2 on Windows
+- WKWebView on macOS/iOS
+- WebKitGTK on Linux
+- Android System WebView on Android
+
+### Quality and automation
+
+- Vitest
+- Testing Library
+- Playwright
+- ESLint
+- GitHub Actions
+- CodeQL
+
+## Quick start: web/PWA
 
 Requirements: Node.js 20.19+ and npm.
 
@@ -69,9 +123,106 @@ npm install
 npm run dev
 ```
 
+Production web build:
+
+```bash
+npm run build
+```
+
+The PWA bundle is emitted to `dist/`.
+
+## Quick start: native desktop
+
+Install Rust and the Tauri prerequisites for the current operating system, then run:
+
+```bash
+npm install
+npm run native:dev
+```
+
+Compile-check the native layer:
+
+```bash
+npm run native:check
+```
+
+Create native desktop bundles for the current operating system:
+
+```bash
+npm run native:build
+```
+
+Desktop bundles are emitted under `src-tauri/target/release/bundle/`.
+
+## Android
+
+After installing Android Studio, SDK/Platform-Tools/Build-Tools, NDK, Java, and configuring the required environment variables:
+
+```bash
+npm install
+npm run android:init
+npm run android:dev
+```
+
+Build an Android APK:
+
+```bash
+npm run android:build -- --apk
+```
+
+Build an Android App Bundle for Play Store distribution:
+
+```bash
+npm run android:build -- --aab
+```
+
+Production store publishing requires signing credentials kept outside this repository.
+
+## iOS / iPadOS
+
+iOS development requires macOS with full Xcode.
+
+```bash
+npm install
+npm run ios:init
+npm run ios:dev
+```
+
+For a physical device on the local network:
+
+```bash
+npm run ios:dev -- --host
+```
+
+Create an iOS release build:
+
+```bash
+npm run ios:build
+```
+
+Final IPA/App Store distribution requires the appropriate Apple signing and provisioning setup outside Git.
+
+## Application icons
+
+`public/icons/icon.svg` is the canonical icon source for every target. Native commands automatically generate Tauri's platform-specific icon files before development/build operations.
+
+You can regenerate them manually with:
+
+```bash
+npm run native:icons
+```
+
 ## Development setup
 
-See [`docs/setup.md`](docs/setup.md) and [`docs/development.md`](docs/development.md).
+Read:
+
+- [`docs/setup.md`](docs/setup.md) — installation and first verification
+- [`docs/development.md`](docs/development.md) — development commands and engineering rules
+- [`docs/platforms.md`](docs/platforms.md) — complete cross-platform/native guide
+- [`docs/testing.md`](docs/testing.md) — testing strategy
+- [`docs/release.md`](docs/release.md) — shared and platform release gates
+
+Core web/shared checks:
 
 ```bash
 npm run typecheck
@@ -87,28 +238,31 @@ npm run perf:budget
 npm run test:e2e
 ```
 
-For the combined local quality gate:
+Combined local shared quality gate:
 
 ```bash
 npm run verify
 ```
 
-`verify` includes version synchronization, the static release-readiness gate, deterministic unit/component/property tests, the production build, and bundle-size budgets. Browser E2E and the dependency audit remain explicit release checks so their evidence is visible separately.
-
-The About screen derives its displayed version from `package.json`; translated catalogs do not carry their own semantic-version strings. `npm run version:check` prevents package, changelog, handoff, and user-visible version wiring from drifting apart.
-
-## Build and release
+Native core check:
 
 ```bash
-npm install
-npm run verify
-npm run test:e2e
-npm audit --audit-level=high
+npm run native:check
 ```
 
-Before creating a release tag, run `npm run release:tag -- vX.Y.Z` with the exact version from `package.json`.
+`verify` includes version synchronization, the static release-readiness gate, deterministic unit/component/property tests, the production build, and bundle-size budgets. Browser E2E, dependency audit, and native-platform checks remain explicit release checks so their evidence is visible separately.
 
-The production PWA bundle is emitted to `dist/`. See [`docs/release.md`](docs/release.md) for the release procedure and [`docs/release-readiness.md`](docs/release-readiness.md) for the evidence matrix.
+## Version synchronization
+
+`package.json` is the canonical application version source. The About screen and Tauri app config derive the application version from package metadata. Cargo also requires a version in `src-tauri/Cargo.toml`, and `npm run version:check` fails if the Cargo version, package version, changelog, handoff, or user-visible version wiring drift apart.
+
+Before creating a release tag, run:
+
+```bash
+npm run release:tag -- vX.Y.Z
+```
+
+with the exact version from `package.json`.
 
 ## Architecture
 
@@ -118,14 +272,16 @@ The production PWA bundle is emitted to `dist/`. See [`docs/release.md`](docs/re
 - `src/state/` — explicit application-state wiring
 - `src/components/` — reusable accessible UI primitives
 - `src/pages/` — route-level product experiences
+- `src/utils/` — shared utilities including browser/native export adaptation
+- `src-tauri/` — native Rust shell, security capabilities, and bundle/mobile configuration
 - `tests/` and `e2e/` — automated verification
 - `scripts/` — repository quality, security, versioning, release-readiness, documentation, and performance checks
 
 Read [`docs/architecture.md`](docs/architecture.md) and [`docs/adr/`](docs/adr/).
 
-## Security and privacy
+## Native CI
 
-Grade data is stored locally in the browser. GradeCraft does not require sign-in or transmit grades, backup contents, or backup passphrases to a GradeCraft server. Imports are parsed locally. The browser entry point uses a restrictive Content Security Policy and no-referrer policy. See [`PRIVACY.md`](PRIVACY.md) and [`SECURITY.md`](SECURITY.md).
+`.github/workflows/native.yml` validates the Tauri core on Ubuntu, Windows, and macOS and validates Android/iOS scaffold generation on suitable hosted runners. Store signing is intentionally not performed in pull-request CI because signing credentials are release secrets.
 
 ## Contributing
 
