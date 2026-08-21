@@ -3,118 +3,108 @@
 ## Current milestone
 
 **Package version:** 2.0.12  
-**Release state:** Cross-platform source support is implemented for PWA, Windows, macOS, Linux, Android, and iOS/iPadOS; positive clean-runner/native-device evidence is still required before calling every platform release artifact green  
-**Date:** 2026-08-20
+**Milestone:** Release-evidence hardening after cross-platform source completion  
+**Release state:** PWA, Windows, macOS, Linux, Android, and iOS/iPadOS source support is implemented. Browser screenshot evidence is now automated, but the exact release commit still needs positive CI/E2E/Native/CodeQL evidence plus real platform build/smoke evidence before publication is called green.  
+**Date:** 2026-08-21
 
 ## Completed product scope
 
-GradeCraft is a privacy-first TypeScript + React application with one shared product implementation delivered as both a Progressive Web App and Tauri 2 native applications. The shared application includes weighted and points grading, custom courses/categories/assignments/scales, GPA, what-if planning, weighted target-score solving, semester organization/search, charts, English/Hindi localization, local persistence/recovery, JSON and CSV portability, encrypted backup files, PWA offline support, accessibility preferences, and responsive layouts.
+GradeCraft is a privacy-first TypeScript + React application delivered through a shared PWA frontend and Tauri 2 native shell. The shared product includes weighted and points grading, custom courses/categories/assignments/scales, GPA, what-if planning, weighted target-score solving, semester organization/search, charts, English/Hindi localization, local persistence/recovery, JSON and CSV portability, encrypted backups, offline PWA behavior, accessibility preferences, responsive layouts, onboarding, and light/dark/system themes.
 
-Native source support now covers:
+Native source support covers Windows, macOS, Linux, Android, and iOS/iPadOS. Native exports use system save dialogs and the Tauri filesystem plugin while browser/PWA exports retain normal download behavior.
 
-- Windows
-- macOS
-- Linux
-- Android
-- iOS/iPadOS
+## Continuation completed on 2026-08-21
 
-The repository includes unit/domain/data/component/property tests, Playwright browser journeys, CI, E2E, Native CI, CodeQL, Dependabot, release automation, documentation-link checks, secret checks, cross-platform release-readiness checks, web/native version synchronization, production bundle budgets, release-tag validation, coverage artifacts, and Playwright diagnostics.
+### Data-safety fixes
 
-## Cross-platform continuation completed on 2026-08-20
+- Fixed encrypted restore cancellation so successfully decrypted data is not treated as accepted when the user declines the final destructive replacement confirmation.
+- Encrypted restore passphrases are now retained when that confirmation is cancelled, allowing the user to retry without unnecessary re-entry.
+- Plain JSON/CSV export write failures now surface a localized user-facing safety message instead of being logged silently.
+- Added English and Hindi export-failure messaging without exposing raw filesystem exceptions.
+- Preserved the existing rule that successful encrypted backup operations clear passphrases from live component state.
 
-### Native shell and packaging
+### Regression coverage
 
-- Added `src-tauri/build.rs`.
-- Added a Tauri/Rust `Cargo.toml` synchronized to GradeCraft package version `2.0.12`.
-- Added shared desktop/mobile entry point `src-tauri/src/lib.rs` using `#[cfg_attr(mobile, tauri::mobile_entry_point)]`.
-- Added desktop executable entry point `src-tauri/src/main.rs`.
-- Added `src-tauri/tauri.conf.json` using the existing `dist/` frontend and `http://localhost:5173` development server.
-- Configured native bundle identifier `in.sanskar.gradecraft`.
-- Enabled Tauri bundle generation for desktop targets.
-- Configured Android minimum SDK 24.
-- Configured iOS minimum system version 14.0.
-- Added Tauri Dialog and File System plugins for native exports.
-- Added local-window native capability configuration in `src-tauri/capabilities/default.json`.
-- Added `src-tauri/.gitignore` for Cargo output, generated capability schemas, and generated icon assets.
+`tests/DataPage.test.tsx` now covers:
 
-### Shared browser/native behavior
+- successful encrypted export clearing passphrase fields;
+- native encrypted-export save cancellation without false success;
+- plain backup export write rejection with visible user feedback;
+- standard restore cancellation without replacing local state;
+- encrypted restore cancellation while retaining the entered passphrase.
 
-- Kept the browser/PWA download flow for normal web builds.
-- Added native system save dialogs for packaged Tauri exports.
-- Added platform-aware text-file writing for JSON backups, encrypted backups, and CSV exports.
-- Added Android/iOS-compatible URI handling through Tauri's filesystem layer.
-- Changed service-worker registration so it runs only on HTTP/HTTPS production origins and is skipped inside packaged native application protocols.
-- Updated Vite to respect `TAURI_DEV_HOST` for physical-device development.
-- Added device-safe HMR WebSocket configuration for mobile development.
-- Kept the shared grade engine, data model, backup formats, CSV format, localization, accessibility behavior, and state model platform-independent.
+### Publication screenshot evidence automation
 
-### Native commands
+Added `e2e/publication-screenshots.spec.ts` to exercise and capture deterministic full-page candidates from the real production UI for:
 
-Added package scripts for:
+1. onboarding;
+2. course dashboard;
+3. representative course detail;
+4. what-if planner;
+5. GPA view;
+6. settings in light theme;
+7. settings in dark theme;
+8. import/export.
 
-```text
-npm run native:icons
-npm run native:check
-npm run native:dev
-npm run native:build
-npm run android:init
-npm run android:dev
-npm run android:build -- --apk
-npm run android:build -- --aab
-npm run ios:init
-npm run ios:dev
-npm run ios:build
-```
+The normal E2E workflow now uploads screenshot candidates only after successful Chromium E2E. The artifact name includes the exact commit SHA, and `EVIDENCE.txt` records commit/workflow/run identifiers.
 
-Native development/build/mobile scripts automatically generate platform icons from `public/icons/icon.svg`, leaving the existing SVG as the single canonical icon source.
+The tag-release workflow now captures the same views against the already-built `dist/` artifact and uploads `release-screenshots-<tag>-<commit-sha>` only after release E2E succeeds. Its `EVIDENCE.txt` also records the tag.
 
-### CI and release safety
+These outputs are explicitly **candidate evidence**, not automatically approved repository screenshots. A release operator must verify the exact successful run and visually inspect the files before promoting them into `docs/screenshots/`. Browser screenshots are not evidence that any native package was built.
 
-- Added `.github/workflows/native.yml`.
-- Native CI compile-checks the Tauri core on Ubuntu, Windows, and macOS.
-- Native CI validates Android project generation on Linux with Android tooling.
-- Native CI validates iOS project generation on macOS.
-- Expanded `scripts/check-version-sync.mjs` to require `src-tauri/Cargo.toml` to match `package.json` and Tauri to source its application version from `../package.json`.
-- Expanded `scripts/check-release-gate.mjs` so native source files, native security capabilities, native scripts, `docs/platforms.md`, ADR 0008, and Native CI are required release assets.
-- The release gate now checks the Tauri identifier, all-target desktop bundle setting, shared `dist/` frontend path, required native permissions, and required Rust plugins.
+### Release-gate hardening
 
-### Documentation
+`scripts/check-release-gate.mjs` now requires:
 
-- Added `docs/platforms.md` with complete web, Windows, macOS, Linux, Android, and iOS/iPadOS prerequisites and commands.
-- Added `docs/adr/0008-tauri-cross-platform-shell.md` documenting the one-codebase Tauri decision.
-- Updated README with the full platform support matrix and exact native/mobile build commands.
-- Updated setup documentation with native prerequisites and first-run commands.
-- Updated development documentation with desktop/mobile commands and cross-platform engineering rules.
-- Updated architecture documentation with explicit shared, web, and native platform layers.
-- Updated release documentation with per-platform build, smoke-test, data-compatibility, signing, and evidence requirements.
-- Updated release-readiness documentation so source support is not confused with a verified signed release artifact.
-- Updated the 2.0.12 changelog with cross-platform additions, changes, fixes, and security boundaries.
+- `e2e/publication-screenshots.spec.ts` to remain present;
+- normal E2E screenshot artifact wiring and evidence metadata;
+- tag-release screenshot artifact wiring and tag/commit evidence metadata;
+- the existing shared/native quality, version, package, security-capability, and workflow markers.
 
-## Existing 2.0.12 safeguards retained
+This prevents screenshot-evidence tooling from silently disappearing while the repository still reports that its static release structure is valid.
 
-- The About screen derives its displayed application version directly from `package.json`.
-- Hardcoded semantic-version strings are absent from the English and Hindi message catalogs.
-- CSV spreadsheet-export neutralization protects tab, carriage-return, line-feed, `=`, `+`, `-`, and `@` prefixes while preserving GradeCraft round trips.
-- Documentation links are verified locally and in CI.
-- Production JavaScript/CSS/total bundle sizes are subject to executable budgets.
-- Release tags must match `package.json` exactly.
-- Tag releases run shared verification, dependency audit, Chromium E2E against the already verified production build, retain diagnostics, and package only after gates pass.
-- Deterministic property coverage exercises generated grade calculations, target-score solvers, and CSV edge-label round trips.
+### Documentation synchronized
 
-## Verification status for the cross-platform continuation
+Updated:
 
-The current execution sandbox cannot resolve external hosts from its shell, so it could not clone the repository or perform registry-backed `npm install` locally. No local pass result is fabricated.
+- `docs/screenshots/README.md` with the candidate-to-publication promotion procedure;
+- `docs/testing.md` with the new DataPage regressions and screenshot E2E coverage;
+- `docs/release-readiness.md` with browser screenshot evidence requirements and platform-evidence boundaries;
+- `docs/release.md` with exact normal/tag screenshot artifact behavior;
+- `ROADMAP.md` to record completed screenshot automation while keeping actual verified screenshot publication unchecked;
+- `CHANGELOG.md` with the data-safety fixes and release-evidence additions.
 
-Repository-side executable verification is provided by:
+## Existing cross-platform implementation retained
 
-- `.github/workflows/ci.yml` for shared TypeScript/lint/tests/build/audit gates;
-- `.github/workflows/e2e.yml` for browser journeys;
-- `.github/workflows/native.yml` for desktop native compile checks and Android/iOS project generation;
-- CodeQL for static security analysis.
+- Tauri/Rust shared desktop/mobile runtime under `src-tauri/`.
+- Native identifier `in.sanskar.gradecraft`.
+- Desktop all-target bundling configuration.
+- Android minimum SDK 24 and iOS minimum system version 14.0.
+- Local-window capability with dialog/file-write permissions required by exports.
+- Native icon generation from `public/icons/icon.svg`.
+- Device-aware Vite hosting/HMR for Tauri mobile development.
+- Service-worker registration restricted to HTTP/HTTPS production origins so packaged native WebViews skip PWA worker registration.
+- Shared domain/data/state/localization/backup formats across web and native targets.
+- Native CI on Ubuntu, Windows, macOS plus Android/iOS project generation.
+- Package/changelog/handoff/About/native version synchronization.
+- Static release gate, documentation links, secret scan, bundle budgets, dependency audit, CodeQL, Playwright diagnostics, coverage artifacts, and release tag validation.
 
-The exact latest commit must have positive workflow evidence before the native release state is called green.
+## Verification performed / not performed in this environment
 
-## Exact 2.0.12 release gates
+### Source/repository inspection performed
+
+- Inspected the current `main` handoff, roadmap, package scripts, workflows, release gate, data portability UI/tests, Playwright configuration/helpers/specs, screenshot documentation, and release documentation through the connected GitHub repository.
+- Confirmed no open repository issues were returned during this continuation.
+- Confirmed repository search returned no `TODO`, `FIXME`, `HACK`, or `XXX` markers during this continuation.
+- GitHub combined-status queries exposed no status contexts for the inspected direct-push commits. An empty status response is **not** treated as a pass.
+
+### Local execution unavailable
+
+The execution sandbox still could not resolve `github.com` from its shell when attempting repository access, so a clean clone, registry-backed `npm install`, local `npm run verify`, Playwright execution, Cargo/native checks, and dependency audit could not be performed here. No passing test/build/CI result is fabricated.
+
+The repository-side workflows remain the authoritative executable verification path until a network-enabled clean checkout is available.
+
+## Exact 2.0.12 shared release gates
 
 Run from a clean network-enabled checkout:
 
@@ -129,7 +119,7 @@ npm run native:check
 npm run release:tag -- v2.0.12
 ```
 
-Then run the applicable platform build from its supported host:
+Then run the applicable target build:
 
 ```bash
 # Windows/macOS/Linux
@@ -145,61 +135,69 @@ npm run ios:init
 npm run ios:build
 ```
 
-Do not label the exact 2.0.12 candidate or an individual native artifact green until the relevant shared checks, Native CI, platform build, and smoke-test evidence are positively visible.
+## Publication evidence still required
 
-## Platform release evidence still required
+1. Obtain positive CI, E2E, Native CI, CodeQL, dependency-audit, version-sync, release-gate, test, build, and bundle-budget evidence for the exact final 2.0.12 commit.
+2. Download the successful exact-commit `publication-screenshots-<sha>` artifact, verify `EVIDENCE.txt`, visually review every capture, and promote accepted images to `docs/screenshots/`.
+3. If/when `v2.0.12` is tagged, confirm the tag workflow passes and retain/review `release-screenshots-v2.0.12-<sha>` evidence.
+4. Build and smoke-test Windows packages on Windows.
+5. Build and smoke-test macOS packages on macOS.
+6. Build and smoke-test intended Linux bundle formats on Linux.
+7. Build APK/AAB and smoke-test Android on an emulator/device before store publication.
+8. Build/sign iOS/iPadOS on macOS and smoke-test simulator/device behavior before distribution.
+9. Verify standard backup, encrypted backup, and CSV interoperability between at least one browser build and one real native build.
+10. Keep Android keystores, Apple certificates, provisioning credentials, and store secrets outside Git.
+11. Generate/commit a trustworthy npm lockfile only from successful registry-backed dependency resolution if reproducible transitive locking is desired; do not fabricate one offline.
+12. Publish and verify a hosted demo URL only if a public demo is desired.
 
-1. Confirm the latest CI, E2E, Native CI, CodeQL, dependency-audit, version-sync, release-gate, and bundle-budget results for the exact 2.0.12 release commit.
-2. Build Windows native packages on Windows and smoke-test them.
-3. Build macOS native packages on macOS and smoke-test them.
-4. Build intended Linux package formats on Linux and smoke-test them.
-5. Build Android APK/AAB output and smoke-test an emulator/device before store publication.
-6. Build and sign the iOS/iPadOS artifact on macOS using the intended Apple distribution configuration and smoke-test simulator/device behavior.
-7. Verify backup/encrypted-backup/CSV interoperability between at least one web and one native target.
-8. Capture real screenshots from positively verified target builds and place them in `docs/screenshots/`.
-9. Keep Android keystores, Apple signing certificates, provisioning credentials, and all store secrets outside Git.
-10. Generate and commit a trustworthy npm lockfile only from a successful registry-backed dependency resolution if reproducible transitive dependency locking is desired; no lockfile is fabricated in an offline environment.
+## Open issues / limitations
 
-## Open issues
-
-- No known blocker/critical grade-calculation defect is introduced by the cross-platform shell design.
-- Native build/release evidence remains an external verification item until current Actions and real platform packages are positively verified.
+- No known blocker/critical grade-calculation defect was identified during this continuation.
+- Exact latest workflow results are still not positively visible through the available status surface, so the release is not declared green.
+- Real native package builds, device smoke tests, signing/notarization/provisioning, cross-target portability checks, and approved screenshots remain external evidence tasks.
 
 ## Migration notes
 
-Application schema version remains `1`. Package version 2.0.12 does not require a persistence migration. The Tauri shell uses the same application state and portability formats rather than introducing a second native data schema.
+Application schema version remains `1`. These 2.0.12 hardening changes do not require a persistence migration and do not change JSON/CSV/encrypted-backup formats.
 
-Before uninstalling a native application or clearing its application data, users who need to retain local grades should export a backup.
+Before uninstalling a native application or clearing application data, users who need to retain local grades should export a backup.
 
 ## 2.0.12 release notes draft
 
-GradeCraft 2.0.12 delivers the completed privacy-first grade-management experience as one shared application across the web/PWA, Windows, macOS, Linux, Android, and iOS/iPadOS source targets. The release combines weighted target planning, semester organization/search, English/Hindi localization, authenticated portable backups, staged flexible CSV import, stronger data-integrity safeguards, hardened spreadsheet export boundaries, offline PWA behavior, native save dialogs, Tauri desktop/mobile packaging, expanded automated tests, executable web/native release gates, diagnostic CI artifacts, tag/version enforcement, and package-derived user-visible versioning protected by synchronization checks.
+GradeCraft 2.0.12 delivers the privacy-first grade-management experience through one shared React/TypeScript product across web/PWA, Windows, macOS, Linux, Android, and iOS/iPadOS source targets. The candidate combines weighted and points grading, GPA and what-if planning, semester organization/search, English/Hindi localization, local recovery, authenticated portable backups, flexible staged CSV import, hardened spreadsheet export boundaries, offline PWA behavior, Tauri native packaging and save dialogs, guarded destructive data operations, stronger export/restore error handling, comprehensive automated tests, deterministic publication screenshot evidence, executable web/native release gates, exact tag/version checks, and package-derived user-visible versioning.
 
-## Cross-platform implementation commits
+## Recent continuation commits
 
-- `63a2095` — feat(native): add Tauri build entrypoint
-- `112630f` — feat(native): add cross-platform Rust manifest
-- `508d8dd` — feat(native): add desktop application entrypoint
-- `f3a071d` — feat(native): add shared desktop and mobile runtime
-- `2816bfc` — feat(native): configure all Tauri target platforms
-- `a22ea01` — feat(native): grant export-only native capabilities
-- `7c73b5a` — feat(native): add cross-platform file plugins
-- `9a63cb2` — feat(native): add cross-platform build commands and packages
-- `042d720` — fix(native): make Vite development host mobile-aware
-- `ded56ad` — fix(native): skip web service worker in packaged apps
-- `fbb8875` — feat(native): save exports with native dialogs
-- `d3422fd` — fix(native): generate application icons before native commands
-- `67092ef` — chore(native): ignore generated native build artifacts
-- `ce54a41` — test(native): enforce web and native version synchronization
-- `14eef45` — ci(native): validate desktop and mobile targets
-- `bc3c33e` — docs(native): add complete cross-platform build guide
-- `d608d5e` — docs(architecture): record Tauri cross-platform decision
-- `601841c` — fix(native): configure device-safe Vite HMR
-- `65bf6dd` — docs(native): expand setup for desktop and mobile targets
-- `3c5509e` — docs(native): document cross-platform development workflow
-- `124deba` — docs(architecture): integrate native platform layer
-- `6f47c7c` — docs(release): add native platform release gates
-- `f128d42` — test(native): make cross-platform assets release-critical
-- `bba3c83` — docs(readme): publish full cross-platform support matrix
-- `7631398` — docs(release): add cross-platform readiness evidence
-- `a078f34` — docs(changelog): record full cross-platform support
+### 2026-08-21 data and evidence hardening
+
+- `59b4a426` — fix(data): preserve passphrase when restore is cancelled
+- `f02442b3` — test(data): cover cancelled encrypted restores
+- `f3cf80b7` — feat(i18n): add export failure safety message
+- `ec33ab85` — fix(data): surface export write failures
+- `760b03c1` — test(data): cover export write failure feedback
+- `4cd0ee74` — test(e2e): capture publication screenshot candidates
+- `b93c75a8` — ci(e2e): publish screenshot evidence artifacts
+- `bbbf2b6e` — test(release): require screenshot evidence wiring
+- `42810fdd` — ci(release): retain tagged screenshot evidence
+- `8db4f8bb` — docs(screenshots): document verified capture workflow
+- `26e1b0d3` — docs(testing): document screenshot evidence coverage
+- `53c5d3ad` — docs(release): define screenshot evidence promotion
+- `f26e3b44` — docs(release): integrate screenshot evidence artifacts
+- `7f3fa63c` — docs(changelog): record release evidence hardening
+- `50ed1e32` — docs(roadmap): track screenshot evidence automation
+- `04da959c` — test(release): protect tagged screenshot evidence
+
+### Prior native follow-up commits not previously listed in this handoff
+
+- `303b7c71` — fix(native): make compile check fresh-checkout safe
+- `eb6a13fb` — fix(native): await and handle native export outcomes
+- `86ee3504` — test(native): model successful async export saves
+- `7c81fb6a` — test(native): cover cancelled native backup saves
+
+## Next exact work
+
+1. Inspect the GitHub Actions results for the latest `main` SHA and fix any CI/E2E/native failures rather than tagging around them.
+2. If E2E is green, review the exact-SHA screenshot artifact and promote only accepted real captures.
+3. Run the complete 2.0.12 clean-checkout release gate from a network-enabled environment.
+4. Perform real platform package builds/smoke tests and web/native portability checks.
+5. Only after all required exact-commit evidence is positive, validate and create `v2.0.12`.
