@@ -36,7 +36,7 @@ jobs:
           } > test-results/publication-screenshots/EVIDENCE.txt
       - name: Upload tagged publication screenshot candidates
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-screenshots-${{ github.ref_name }}-${{ github.sha }}
           path: test-results/publication-screenshots/
@@ -44,7 +44,7 @@ jobs:
           retention-days: 30
       - name: Upload release Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-playwright-report
           path: playwright-report/
