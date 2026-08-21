@@ -51,7 +51,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
       - run: cd dist && zip -r ../gradecraft-pwa.zip .
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: gradecraft-pwa.zip
           generate_release_notes: true
