@@ -60,13 +60,14 @@ export function DataPage() {
     setBackupPassphraseConfirm("");
   }
 
-  function replaceFromBackup(restored: ReturnType<typeof parseBackup>, successMessage: string) {
+  function replaceFromBackup(restored: ReturnType<typeof parseBackup>, successMessage: string): boolean {
     if (!window.confirm(safetyMessages.restoreReplaceConfirm)) {
       setMessage(safetyMessages.restoreCancelled);
-      return;
+      return false;
     }
     dispatch({ type: "data/replace", data: restored });
     setMessage(successMessage);
+    return true;
   }
 
   async function exportTextFile(filename: string, content: string, type: string) {
@@ -392,8 +393,9 @@ export function DataPage() {
             void readFile(file, 8_000_000)
               .then((text) => parseEncryptedBackup(text, backupPassphrase))
               .then((restored) => {
-                replaceFromBackup(restored, encryptedMessages.restored);
-                clearPassphrases();
+                if (replaceFromBackup(restored, encryptedMessages.restored)) {
+                  clearPassphrases();
+                }
               })
               .catch((error: unknown) => {
                 log("warn", "backup.encrypted_restore_failed", {
