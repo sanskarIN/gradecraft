@@ -35,7 +35,9 @@ No unreleased changes are currently queued after the 2.0.12 release-candidate pr
 - CI artifacts for coverage and Playwright diagnostics.
 - Dedicated release-readiness evidence documentation.
 - Expanded Playwright journeys for course grading, GPA, localization persistence, and mapped CSV import.
-- Regression coverage for localization, encrypted backups, semester compatibility, weighted planning, PWA deployment rules, storage recovery, grading-scale safeguards, category references, restore cancellation, and control-prefixed CSV cells.
+- Deterministic Playwright publication-screenshot coverage for onboarding, dashboard, course detail, what-if planning, GPA, light/dark settings, and import/export views.
+- Successful E2E and tag-release screenshot artifacts containing exact commit/run evidence metadata, with tag metadata on release captures.
+- Regression coverage for localization, encrypted backups, semester compatibility, weighted planning, PWA deployment rules, storage recovery, grading-scale safeguards, category references, restore cancellation, export write failures, and control-prefixed CSV cells.
 
 ### Changed
 
@@ -43,7 +45,7 @@ No unreleased changes are currently queued after the 2.0.12 release-candidate pr
 - Vite development hosting now respects `TAURI_DEV_HOST` and advertises a device-safe HMR websocket for physical mobile development.
 - Production service-worker registration now runs only on HTTP/HTTPS so packaged native WebViews do not try to register the PWA worker.
 - Browser downloads remain unchanged while native exports route through operating-system save dialogs and platform-aware filesystem writes.
-- The release gate now treats native source files, capabilities, platform documentation, native scripts, and Native CI as required release assets.
+- The release gate now treats native source files, capabilities, platform documentation, native scripts, Native CI, and browser screenshot-evidence wiring as required release assets.
 - Version synchronization now verifies `src-tauri/Cargo.toml` and requires Tauri to source its application version from `package.json`.
 - Setup, architecture, development, release-readiness, and release documentation now include explicit native-platform evidence and signing boundaries.
 - The About screen derives the displayed application version directly from `package.json` instead of duplicating a version literal in localization catalogs.
@@ -57,7 +59,8 @@ No unreleased changes are currently queued after the 2.0.12 release-candidate pr
 - Playwright can run against an already-built release artifact so the exact verified `dist/` output is exercised before packaging.
 - `npm run verify` includes documentation-link validation, version synchronization, release-readiness validation, the production build, and bundle-size budgets.
 - Main CI enforces documentation links, version synchronization, release readiness, bundle budgets, and uploads coverage evidence.
-- Tag releases require an exact version/tag match, high-severity dependency audit, Chromium installation, and Playwright E2E before packaging.
+- E2E publication screenshots are retained only after successful browser verification and remain review-required candidates rather than automatically approved documentation assets.
+- Tag releases require an exact version/tag match, high-severity dependency audit, Chromium installation, Playwright E2E, and exact-tag screenshot evidence before packaging.
 - The release workflow no longer performs a redundant standalone build after `npm run verify`.
 
 ### Fixed
@@ -65,6 +68,9 @@ No unreleased changes are currently queued after the 2.0.12 release-candidate pr
 - Packaged native applications no longer execute the browser-only service-worker registration path.
 - Native file exports no longer depend on browser anchor-download behavior that is inconsistent across system WebViews.
 - Mobile Vite development no longer assumes `localhost` is reachable from the physical device.
+- Cancelling a native encrypted-backup save no longer reports success or clears the passphrase fields.
+- Cancelling an encrypted restore after successful decryption no longer clears the passphrase when current local data was intentionally left unchanged.
+- Plain JSON/CSV export write failures now surface a localized user-visible safety message instead of being logged silently.
 - Removed stale hardcoded `GradeCraft 1.0.0` strings from English and Hindi catalogs so future releases cannot display an obsolete version.
 - Repaired Local Storage recovery so a corrupt primary record cannot overwrite a valid recovery snapshot during the first autosave.
 - Corrupt unrecoverable Local Storage records are cleared before a clean default state is initialized.
