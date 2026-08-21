@@ -19,6 +19,7 @@ The property suite uses a fixed pseudo-random seed so it explores many generated
 - `tests/csv.test.ts` — CSV parsing, formula/control-prefix neutralization, protected-label round trips, validation, arbitrary header mapping, and alias suggestions.
 - Backup tests cover JSON envelope/schema behavior.
 - `tests/encryptedBackup.test.ts` — encrypted-backup round trips, wrong-passphrase rejection, tamper detection, and minimum passphrase enforcement.
+- `tests/DataPage.test.tsx` — destructive-restore cancellation, encrypted-export cancellation, encrypted-restore passphrase retention, and user-visible export-write failure handling.
 - Local Storage tests cover primary/recovery behavior.
 
 ## Component tests
@@ -37,6 +38,11 @@ Playwright runs against a production Vite build in Chromium.
 - `e2e/course-workflow.spec.ts` — create a weighted course, add an assignment, verify weighted target planning, and inspect GPA.
 - `e2e/localization.spec.ts` — switch to Hindi and verify the choice persists across reload.
 - `e2e/data-portability.spec.ts` — upload third-party CSV headers, review suggested mappings, confirm import, and verify the assignment in the course.
+- `e2e/publication-screenshots.spec.ts` — exercise real onboarding/course/planning/GPA/settings/data views and capture deterministic full-page screenshot candidates from that production UI.
+
+The normal E2E workflow records the exact commit/run metadata in `EVIDENCE.txt` and uploads `publication-screenshots-<commit-sha>` only after the Chromium E2E job succeeds. The tag-release workflow does the same against the already-verified `dist/` build and names the artifact with both tag and commit SHA. See [`screenshots/README.md`](screenshots/README.md) for the review/promotion rule.
+
+Screenshot candidates are evidence artifacts, not an automatic claim that publication screenshots are approved. A release operator must confirm the exact successful run, inspect the images, and only then promote reviewed captures into `docs/screenshots/`.
 
 The 2.0.12 manual release smoke test additionally verifies About displays `2.0.12` in both supported UI languages; see [`release.md`](release.md).
 
@@ -64,7 +70,7 @@ The release-readiness gate can also be run independently:
 npm run release:gate
 ```
 
-It verifies required project/docs/community files, required package scripts, README identity/support markers, semantic version shape, CI quality steps, and release-workflow verification wiring. It also requires the version-sync infrastructure itself so that gate cannot silently disappear.
+It verifies required project/docs/community files, required package scripts, README identity/support markers, semantic version shape, CI quality steps, release-workflow verification wiring, and screenshot-evidence capture wiring. It also requires the version-sync infrastructure itself so that gate cannot silently disappear.
 
 Run browser tests separately:
 
