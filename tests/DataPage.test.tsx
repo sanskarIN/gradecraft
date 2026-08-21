@@ -68,6 +68,23 @@ describe("DataPage data safety", () => {
     expect(confirm).toHaveValue("correct horse battery staple");
   });
 
+  it("surfaces plain backup export write failures", async () => {
+    vi.mocked(downloadText).mockRejectedValueOnce(new Error("write failed"));
+    render(
+      <AppProvider>
+        <DataPage />
+      </AppProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Export backup" }));
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "Export failed. Your local data was not changed. Try again or choose a different save location.",
+        ),
+      ).toBeInTheDocument(),
+    );
+  });
+
   it("does not replace local data when restore confirmation is cancelled", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
     const restored = createDefaultData("2026-08-19T00:00:00.000Z");
