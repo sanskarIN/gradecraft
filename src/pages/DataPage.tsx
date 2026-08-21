@@ -75,6 +75,7 @@ export function DataPage() {
       await downloadText(filename, content, type);
     } catch (error) {
       log("warn", "data.export_failed", { kind: error instanceof Error ? error.name : "unknown" });
+      setMessage(safetyMessages.exportFailed);
     }
   }
 
