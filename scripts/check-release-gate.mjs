@@ -155,6 +155,14 @@ for (const command of [
 ]) {
   if (!release.includes(command)) failures.push(`Release workflow is missing gate: ${command}`);
 }
+for (const marker of [
+  "release-screenshots-${{ github.ref_name }}-${{ github.sha }}",
+  "test-results/publication-screenshots/",
+  "EVIDENCE.txt",
+  "tag=$GITHUB_REF_NAME",
+]) {
+  if (!release.includes(marker)) failures.push(`Release workflow is missing screenshot evidence marker: ${marker}`);
+}
 if (!release.includes('GRADECRAFT_E2E_PREBUILT: "1"')) {
   failures.push("Release E2E must exercise the already verified production build.");
 }
