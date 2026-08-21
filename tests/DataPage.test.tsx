@@ -12,6 +12,7 @@ vi.mock("../src/utils/download", () => ({
 }));
 
 import { createBackup } from "../src/data/backup";
+import { parseEncryptedBackup } from "../src/data/encryptedBackup";
 import { createDefaultData } from "../src/domain/defaults";
 import { DataPage } from "../src/pages/DataPage";
 import { AppProvider } from "../src/state/AppContext";
@@ -89,6 +90,34 @@ describe("DataPage data safety", () => {
       ).toBeInTheDocument(),
     );
     expect(screen.getByRole("heading", { name: "Import & export" })).toBeInTheDocument();
+    expect(window.confirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the passphrase when a decrypted restore is cancelled", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    const restored = createDefaultData("2026-08-19T00:00:00.000Z");
+    vi.mocked(parseEncryptedBackup).mockResolvedValueOnce(restored);
+    const { container } = render(
+      <AppProvider>
+        <DataPage />
+      </AppProvider>,
+    );
+    const passphrase = screen.getByLabelText("Backup passphrase");
+    fireEvent.change(passphrase, { target: { value: "correct horse battery staple" } });
+    const encryptedInputs = container.querySelectorAll(
+      'input[type="file"][accept=".json,application/json"]',
+    );
+    expect(encryptedInputs).toHaveLength(2);
+    fireEvent.change(encryptedInputs[1], {
+      target: { files: [fileWithText("encrypted-backup.json", "ciphertext")] },
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText("Restore cancelled. Current local data was not changed."),
+      ).toBeInTheDocument(),
+    );
+    expect(parseEncryptedBackup).toHaveBeenCalledWith("ciphertext", "correct horse battery staple");
+    expect(passphrase).toHaveValue("correct horse battery staple");
     expect(window.confirm).toHaveBeenCalledTimes(1);
   });
 });
