@@ -38,6 +38,7 @@
 - [x] CI coverage and Playwright diagnostic artifacts
 - [x] Release tag/package-version validation
 - [x] Tag releases gated by verification, dependency audit, and Chromium E2E
+- [x] Deterministic browser screenshot candidate capture with exact commit/tag evidence metadata
 - [x] Release-readiness evidence matrix and final release procedure
 
 ## 2.0.12 — Version integrity and release preparation
@@ -53,10 +54,13 @@
 
 ## Remaining publication evidence
 
-- [ ] Capture real screenshots from a positively verified production build.
+- [ ] Capture and promote real screenshots from a positively verified production build.
+  - Automated Playwright capture now produces exact-commit candidates and `EVIDENCE.txt`; this remains unchecked until a successful run is reviewed and accepted into `docs/screenshots/`.
 - [ ] Publish and verify a hosted demo URL if a public demo is desired.
 - [ ] Record positive clean-checkout/GitHub Actions evidence for the exact 2.0.12 release commit before tagging `v2.0.12`.
+- [ ] Record platform-specific build and smoke-test evidence for each native package that will be published.
+- [ ] Verify web/native JSON, encrypted-backup, and CSV interoperability on real target builds.
 
-These items require an actual runner/browser/deployment and are intentionally not replaced with generated screenshots, mock deployment links, or an assumption that missing status contexts mean success.
+These items require an actual runner/browser/deployment or target platform and are intentionally not replaced with generated screenshots, mock deployment links, or an assumption that missing status contexts mean success.
 
 Privacy-first offline use remains the product baseline. Cloud storage is optional transport chosen by the user; GradeCraft does not require an account or receive backup passphrases.
