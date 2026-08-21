@@ -17,6 +17,7 @@ This document separates repository-complete engineering work from evidence that 
 | Production web/frontend build | `npm run build` |
 | Bundle budgets | `npm run perf:budget` |
 | Browser journeys | `npm run test:e2e` |
+| Browser screenshot evidence | `e2e/publication-screenshots.spec.ts` plus successful E2E artifact |
 | Native Rust/Tauri compile check | `npm run native:check` |
 | Windows native core | `.github/workflows/native.yml` on `windows-latest` |
 | macOS native core | `.github/workflows/native.yml` on `macos-latest` |
@@ -27,7 +28,7 @@ This document separates repository-complete engineering work from evidence that 
 | Static security analysis | GitHub CodeQL workflow |
 | Tag/package consistency | `npm run release:tag -- vX.Y.Z` |
 
-The main CI workflow runs the shared non-browser quality gates plus the dependency audit and uploads the coverage report. The E2E workflow installs Chromium, runs Playwright, and preserves the HTML report as an artifact. The Native workflow verifies the shared Tauri shell on the three desktop runner families and validates mobile project generation.
+The main CI workflow runs the shared non-browser quality gates plus the dependency audit and uploads the coverage report. The E2E workflow installs Chromium, runs Playwright, preserves the HTML report, and on success uploads commit-addressed screenshot candidates plus evidence metadata. The Native workflow verifies the shared Tauri shell on the three desktop runner families and validates mobile project generation.
 
 ## Version 2.0.12 candidate commands
 
@@ -54,7 +55,7 @@ Source support is not the same as a verified release artifact. A platform should
 
 | Target | Minimum release evidence |
 | --- | --- |
-| Web/PWA | `npm run build`, browser E2E, deployed/preview PWA smoke test |
+| Web/PWA | `npm run build`, browser E2E, reviewed screenshot evidence, deployed/preview PWA smoke test |
 | Windows | Native workflow green plus `npm run native:build` and Windows package smoke test |
 | macOS | Native workflow green plus `npm run native:build` and macOS app smoke test |
 | Linux | Native workflow green plus `npm run native:build` and intended Linux bundle smoke test |
@@ -63,6 +64,14 @@ Source support is not the same as a verified release artifact. A platform should
 
 Signing/notarization/provisioning evidence belongs to the trusted release environment. Signing credentials are never a repository-level gate because they must not be committed.
 
+## Screenshot evidence integrity
+
+The E2E workflow captures onboarding, dashboard, representative course detail, what-if, GPA, light/dark settings, and import/export views from the real production UI. A successful run uploads `publication-screenshots-<commit-sha>` and records the commit/workflow identifiers in `EVIDENCE.txt`.
+
+The tag-release workflow captures the same views against the already-built `dist/` artifact and uploads `release-screenshots-<tag>-<commit-sha>` with tag/commit metadata.
+
+These are candidate artifacts. They become repository publication screenshots only after a release operator confirms the exact successful run and visually reviews every image. Browser screenshots do not establish native package readiness. See [`screenshots/README.md`](screenshots/README.md).
+
 ## Manual evidence still required before publication
 
 - Verify the complete smoke-test list in [`release.md`](release.md) against the target build.
@@ -70,8 +79,9 @@ Signing/notarization/provisioning evidence belongs to the trusted release enviro
 - Verify PWA installation, update behavior, subpath hosting, and offline shell behavior in a real browser.
 - Verify native system save dialogs and cross-platform backup/CSV interoperability on native targets being published.
 - Review current CodeQL, Dependabot, CI, E2E, and Native results in GitHub Actions.
+- Review and promote browser screenshot candidates only from a positively verified exact-commit run.
 - For Android/iOS releases, test an emulator/simulator and a physical device when practical before store publication.
-- Capture real application screenshots only after the verified target build is running.
+- Capture native/store screenshots only after the verified target package is running.
 - Verify any hosted demo URL before adding it to the README.
 
 ## 2.0.12 tagging rule
@@ -82,4 +92,4 @@ Do not push `v2.0.12` merely because package metadata has been prepared. First o
 
 A connector/API response that contains no check contexts is not proof that checks passed. A successful release requires positive evidence from the clean-checkout commands and/or the corresponding GitHub Actions runs.
 
-The repository intentionally keeps screenshot placeholders instead of generated mock screenshots because publication evidence must represent the real application.
+The repository intentionally keeps screenshot placeholders until a successful exact-commit capture artifact has been reviewed and promoted; generated or mock screenshots are never substituted for release evidence.
