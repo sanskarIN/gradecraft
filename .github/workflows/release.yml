@@ -24,6 +24,24 @@ jobs:
       - run: npm run test:e2e
         env:
           GRADECRAFT_E2E_PREBUILT: "1"
+      - name: Record release screenshot evidence metadata
+        if: success()
+        run: |
+          {
+            echo "commit=$GITHUB_SHA"
+            echo "tag=$GITHUB_REF_NAME"
+            echo "workflow=$GITHUB_WORKFLOW"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+          } > test-results/publication-screenshots/EVIDENCE.txt
+      - name: Upload tagged publication screenshot candidates
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-screenshots-${{ github.ref_name }}-${{ github.sha }}
+          path: test-results/publication-screenshots/
+          if-no-files-found: error
+          retention-days: 30
       - name: Upload release Playwright report
         if: always()
         uses: actions/upload-artifact@v4
