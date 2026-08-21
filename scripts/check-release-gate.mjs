@@ -41,6 +41,7 @@ const requiredFiles = [
   "public/manifest.webmanifest",
   "public/sw.js",
   "public/icons/icon.svg",
+  "e2e/publication-screenshots.spec.ts",
   "src-tauri/.gitignore",
   "src-tauri/build.rs",
   "src-tauri/Cargo.toml",
@@ -127,6 +128,16 @@ for (const command of [
   "npm audit --audit-level=high",
 ]) {
   if (!ci.includes(command)) failures.push(`CI is missing quality gate: ${command}`);
+}
+
+const e2e = read(".github/workflows/e2e.yml");
+for (const marker of [
+  "npm run test:e2e",
+  "publication-screenshots-${{ github.sha }}",
+  "test-results/publication-screenshots/",
+  "EVIDENCE.txt",
+]) {
+  if (!e2e.includes(marker)) failures.push(`E2E workflow is missing release evidence marker: ${marker}`);
 }
 
 const nativeCi = read(".github/workflows/native.yml");
