@@ -97,4 +97,14 @@ describe("local storage", () => {
     expect(loadData(storage).schemaVersion).toBe(1);
     expect(removeCalls).toBe(0);
   });
+
+  it("reports a failed local-data clear without throwing", () => {
+    const storage = storageDouble({
+      removeItem: () => {
+        throw new DOMException("Storage access denied", "SecurityError");
+      },
+    });
+
+    expect(clearData(storage)).toBe(false);
+  });
 });
