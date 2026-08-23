@@ -3,76 +3,195 @@
 ## Current milestone
 
 **Package version:** 2.0.12  
-**Milestone:** Release-evidence hardening after cross-platform source completion  
-**Release state:** PWA, Windows, macOS, Linux, Android, and iOS/iPadOS source support is implemented. Browser screenshot evidence is now automated, but the exact release commit still needs positive CI/E2E/Native/CodeQL evidence plus real platform build/smoke evidence before publication is called green.  
-**Date:** 2026-08-21
+**Milestone:** Release-evidence, data-safety, accessibility, and publication hardening after cross-platform source completion  
+**Release state:** PWA, Windows, macOS, Linux, Android, and iOS/iPadOS source support is implemented. Repository release gates, screenshot provenance/checksums, PWA archive checksums, persistence warnings, workflow rerun controls, and least-privilege publication are now hardened. The exact final commit still requires positive CI/E2E/Native/CodeQL evidence plus real platform build/smoke evidence before publication is called green.  
+**Date:** 2026-08-23
 
-## Completed product scope
+## Continuation completed on 2026-08-23
 
-GradeCraft is a privacy-first TypeScript + React application delivered through a shared PWA frontend and Tauri 2 native shell. The shared product includes weighted and points grading, custom courses/categories/assignments/scales, GPA, what-if planning, weighted target-score solving, semester organization/search, charts, English/Hindi localization, local persistence/recovery, JSON and CSV portability, encrypted backups, offline PWA behavior, accessibility preferences, responsive layouts, onboarding, and light/dark/system themes.
+This continuation started from `c984bae1e6ddae2284c25b08f5d989904c01799b`. Repository comparison after the implementation/documentation pass showed the branch **47 commits ahead, 0 behind**, across 28 changed files before this handoff update.
 
-Native source support covers Windows, macOS, Linux, Android, and iOS/iPadOS. Native exports use system save dialogs and the Tauri filesystem plugin while browser/PWA exports retain normal download behavior.
+### Workflow reliability and exact-ref verification
 
-## Continuation completed on 2026-08-21
+- Added `workflow_dispatch` to CI, Native, and CodeQL; E2E already supported manual dispatch and retains it.
+- Added per-workflow/ref concurrency groups with `cancel-in-progress: true` to CI, E2E, Native, and CodeQL so superseded runs do not obscure the newest verification state.
+- Extended `scripts/check-release-gate.mjs` so manual exact-ref verification and concurrency controls cannot silently disappear.
 
-### Data-safety fixes
+### Workflow credential hardening
 
-- Fixed encrypted restore cancellation so successfully decrypted data is not treated as accepted when the user declines the final destructive replacement confirmation.
-- Encrypted restore passphrases are now retained when that confirmation is cancelled, allowing the user to retry without unnecessary re-entry.
-- Plain JSON/CSV export write failures now surface a localized user-facing safety message instead of being logged silently.
-- Added English and Hindi export-failure messaging without exposing raw filesystem exceptions.
-- Preserved the existing rule that successful encrypted backup operations clear passphrases from live component state.
+- Every project-code checkout in CI, E2E, Native, CodeQL, and tagged release verification now uses `persist-credentials: false`.
+- The static release gate counts checkout occurrences and requires matching credential-isolation settings for every checkout, including all three Native jobs.
+- Tagged publication is split into two jobs:
+  - `verify` runs project code with read-only repository permission;
+  - `publish` depends on `verify`, downloads only staged verified release files, receives `contents: write`, and does not check out or execute repository project code.
+- The release gate protects the read-only verification/write-only publication boundary.
 
-### Regression coverage
+### Screenshot evidence provenance and integrity
 
-`tests/DataPage.test.tsx` now covers:
+- Normal E2E screenshot evidence now records repository, commit, ref, triggering event, workflow, run ID, and run attempt.
+- Tagged screenshot evidence records the same provenance plus the release tag.
+- Both workflows hash every PNG into `SHA256SUMS.txt` before artifact upload and fail the evidence step if the manifest is empty.
+- The release gate requires the provenance and hash-manifest wiring.
+- `docs/screenshots/README.md`, `docs/testing.md`, `docs/release.md`, and `docs/release-readiness.md` now require checksum verification before screenshot promotion.
 
-- successful encrypted export clearing passphrase fields;
-- native encrypted-export save cancellation without false success;
-- plain backup export write rejection with visible user feedback;
-- standard restore cancellation without replacing local state;
-- encrypted restore cancellation while retaining the entered passphrase.
+### PWA release artifact integrity
 
-### Publication screenshot evidence automation
+- Tagged releases generate `gradecraft-pwa.zip.sha256` after packaging the already-verified `dist/` output.
+- The ZIP and checksum are staged together as a short-lived Actions artifact before the write-capable publish job starts.
+- GitHub releases publish both `gradecraft-pwa.zip` and `gradecraft-pwa.zip.sha256`.
+- The release gate requires PWA checksum generation, staging, download, and publication wiring.
 
-Added `e2e/publication-screenshots.spec.ts` to exercise and capture deterministic full-page candidates from the real production UI for:
+### Local persistence resilience
 
-1. onboarding;
-2. course dashboard;
-3. representative course detail;
-4. what-if planner;
-5. GPA view;
-6. settings in light theme;
-7. settings in dark theme;
-8. import/export.
+- Fixed startup behavior when Local Storage reads throw `SecurityError` or another access exception; GradeCraft now falls back safely instead of crashing before its storage error handling runs.
+- A failed/interrupted recovery-record read no longer triggers destructive cleanup of possibly recoverable data.
+- `clearData()` now reports failure safely instead of throwing through the UI.
+- `AppProvider` tracks whether the latest persistence write succeeded.
+- Failed local-data clearing does not reset only the in-memory view while stale data remains persisted.
+- A localized English/Hindi alert tells users when changes could not be persisted and may be lost on reload.
+- Storage logging continues to record only safe error classifications, not raw storage contents.
 
-The normal E2E workflow now uploads screenshot candidates only after successful Chromium E2E. The artifact name includes the exact commit SHA, and `EVIDENCE.txt` records commit/workflow/run identifiers.
+### Persistence regression coverage
 
-The tag-release workflow now captures the same views against the already-built `dist/` artifact and uploads `release-screenshots-<tag>-<commit-sha>` only after release E2E succeeds. Its `EVIDENCE.txt` also records the tag.
+`tests/storage.test.ts` now additionally covers:
 
-These outputs are explicitly **candidate evidence**, not automatically approved repository screenshots. A release operator must verify the exact successful run and visually inspect the files before promoting them into `docs/screenshots/`. Browser screenshots are not evidence that any native package was built.
+- denied primary storage access;
+- interrupted recovery inspection without destructive cleanup;
+- failed local-data clearing.
 
-### Release-gate hardening
+`tests/App.test.tsx` now covers the visible persistence-failure warning.
 
-`scripts/check-release-gate.mjs` now requires:
+### Dialog accessibility and behavior
 
-- `e2e/publication-screenshots.spec.ts` to remain present;
-- normal E2E screenshot artifact wiring and evidence metadata;
-- tag-release screenshot artifact wiring and tag/commit evidence metadata;
-- the existing shared/native quality, version, package, security-capability, and workflow markers.
+- Reusable native `<dialog>` instances now expose their visible heading through `aria-labelledby`.
+- Modal close controls require an explicit accessible label instead of a hardcoded English label.
+- Dashboard, course/assignment, and grading-scale dialogs pass the existing localized cancel text as that close label.
+- Controlled dialog closure ignores the follow-up native `close` event after the parent has already closed state, preventing duplicate close callbacks.
+- Added `tests/Modal.test.tsx` for dialog/heading association, explicit close naming, and native cancel handling.
 
-This prevents screenshot-evidence tooling from silently disappearing while the repository still reports that its static release structure is valid.
+### Navigation accessibility
 
-### Documentation synchronized
+- Primary navigation now marks the active destination with `aria-current="page"`.
+- Course-specific what-if URLs correctly mark the what-if navigation destination current.
+- `tests/App.test.tsx` covers dashboard and what-if current-navigation state.
+- `docs/accessibility.md` now documents dialog heading/close semantics, current navigation announcements, and persistence alerts.
+
+### What-if stale-route recovery
+
+- A bookmarked what-if URL referencing a deleted course now falls back to an available course instead of rendering a blank planner.
+- If the selected course later disappears from application data, planner state recovers to the first remaining course and resets stale score/category overrides.
+- Added `tests/WhatIfPage.test.tsx` for deleted-course deep-link recovery.
+
+### Cross-platform export filename safety
+
+- Added centralized filename sanitation in `src/utils/download.ts` before either browser download or Tauri save-dialog handling.
+- Illegal filesystem/path characters and ASCII control characters are replaced.
+- Trailing dots/spaces are removed.
+- Windows reserved device names such as `CON` and `LPT1` are made safe.
+- Empty/unusable names fall back to `gradecraft-export.txt`.
+- Excessively long filenames are capped while preserving an extension when possible.
+- Added `tests/download.test.ts` covering all of these boundaries.
+
+### Release-gate expansion
+
+`scripts/check-release-gate.mjs` now protects, in addition to its previous checks:
+
+- CI/E2E/Native/CodeQL manual dispatch support;
+- concurrency cancellation controls;
+- CodeQL initialization/analysis wiring;
+- screenshot repository/ref/event provenance;
+- screenshot SHA-256 manifests;
+- PWA release ZIP checksum publication;
+- staged release asset handoff;
+- read-only verification/write-only publication separation;
+- non-persisted checkout credentials on every project-code checkout.
+
+### Documentation synchronized on 2026-08-23
 
 Updated:
 
-- `docs/screenshots/README.md` with the candidate-to-publication promotion procedure;
-- `docs/testing.md` with the new DataPage regressions and screenshot E2E coverage;
-- `docs/release-readiness.md` with browser screenshot evidence requirements and platform-evidence boundaries;
-- `docs/release.md` with exact normal/tag screenshot artifact behavior;
-- `ROADMAP.md` to record completed screenshot automation while keeping actual verified screenshot publication unchecked;
-- `CHANGELOG.md` with the data-safety fixes and release-evidence additions.
+- `CHANGELOG.md` with an Unreleased section for persistence, accessibility, routing, export, workflow, evidence-integrity, and release-security changes;
+- `docs/release.md` with screenshot hash verification, PWA archive checksum verification, and the two-job least-privilege release flow;
+- `docs/testing.md` with Modal, storage-denial, persistence-warning, navigation, stale-route, and filename-safety regression coverage;
+- `docs/release-readiness.md` with exact-ref rerun controls, screenshot/PWA integrity gates, checkout isolation, and the tagged publication boundary;
+- `docs/accessibility.md` with current-route semantics, dialog announcement requirements, and persistence alert behavior;
+- `docs/screenshots/README.md` with exact provenance and checksum verification before image promotion.
+
+## 2026-08-23 continuation commits before this handoff update
+
+### Workflow rerun/concurrency hardening
+
+- `e31d39c9` — ci(quality): cancel superseded runs and allow manual verification
+- `ccd150d7` — ci(e2e): cancel superseded browser runs
+- `00b43c29` — ci(native): allow manual runs and cancel superseded builds
+- `4b973a84` — ci(codeql): allow manual scans and cancel superseded runs
+- `1a169e96` — test(release): protect rerunnable concurrency controls
+
+### Dialog accessibility
+
+- `c04b65b0` — fix(a11y): bind modal dialogs to visible headings
+- `450b5337` — fix(a11y): localize dashboard modal close label
+- `00572e59` — fix(a11y): localize course modal close labels
+- `5d6d4275` — fix(a11y): localize settings modal close label
+- `7d9c8fca` — refactor(a11y): require explicit modal close labels
+- `f250956c` — test(a11y): cover modal naming and cancel behavior
+
+### Persistence resilience
+
+- `6b5ec10b` — fix(storage): survive inaccessible local storage reads
+- `365ae10d` — test(storage): cover denied and interrupted reads
+- `5f9c57ed` — feat(i18n): add persistence failure safety message
+- `d951ba1d` — fix(storage): handle local data clear failures safely
+- `e437f849` — feat(state): expose local persistence health
+- `b108c3e8` — feat(data): warn when local persistence fails
+- `870ddf71` — test(storage): cover failed local data clearing
+- `e1df2dc9` — test(data): surface failed persistence to users
+
+### Screenshot provenance/integrity
+
+- `68d1e671` — ci(e2e): record screenshot provenance context
+- `5c823b30` — ci(e2e): hash publication screenshot candidates
+- `2cd94143` — ci(release): record tagged screenshot provenance
+- `5a255e22` — ci(release): hash tagged screenshot candidates
+- `2fd1e1e7` — test(release): require screenshot provenance hashes
+
+### Navigation accessibility
+
+- `c6d86b36` — fix(a11y): mark current primary navigation item
+- `bc5ee82f` — test(a11y): cover current navigation state
+
+### PWA release integrity and least privilege
+
+- `768acaf9` — ci(release): generate PWA archive checksum
+- `c9b1e6d6` — ci(release): publish PWA checksum beside archive
+- `ec2c9e58` — test(release): require published PWA checksum
+- `37d28913` — ci(release): isolate write permission to publish job
+- `0844dbc1` — test(release): protect least-privilege publish split
+
+### Checkout credential isolation
+
+- `71f49bb1` — ci(security): avoid persisted checkout credentials in quality job
+- `829014b8` — ci(security): avoid persisted checkout credentials in E2E
+- `9c479925` — ci(security): avoid persisted credentials in native jobs
+- `787b2eba` — ci(security): avoid persisted checkout credentials in CodeQL
+- `f5806c06` — ci(security): avoid persisted credentials during release verification
+- `8af427ae` — test(security): require isolated checkout credentials
+
+### Routing and export hardening
+
+- `b9c34c9d` — fix(routing): recover stale what-if course selections
+- `528a5db7` — test(routing): cover stale what-if deep links
+- `b3b154ed` — fix(export): sanitize filenames across native and web targets
+- `08705c68` — test(export): cover cross-platform filename sanitization
+
+### Documentation synchronization
+
+- `889ee979` — docs(changelog): record continuation hardening
+- `8c98eeb6` — docs(release): document integrity and least-privilege publication
+- `b9768008` — docs(testing): document new resilience regressions
+- `4a48e72a` — docs(readiness): add workflow and artifact integrity gates
+- `e1ab1d97` — docs(a11y): document dialog and navigation semantics
+- `1ed1d6f2` — docs(screenshots): require checksum verification before promotion
 
 ## Existing cross-platform implementation retained
 
@@ -93,14 +212,13 @@ Updated:
 
 ### Source/repository inspection performed
 
-- Inspected the current `main` handoff, roadmap, package scripts, workflows, release gate, data portability UI/tests, Playwright configuration/helpers/specs, screenshot documentation, and release documentation through the connected GitHub repository.
-- Confirmed no open repository issues were returned during this continuation.
-- Confirmed repository search returned no `TODO`, `FIXME`, `HACK`, or `XXX` markers during this continuation.
-- GitHub combined-status queries exposed no status contexts for the inspected direct-push commits. An empty status response is **not** treated as a pass.
+- Inspected the current `main` handoff, roadmap, package scripts, workflows, release gate, storage/state/UI persistence paths, reusable modal, navigation, what-if routing, shared download utility, tests, screenshot documentation, and release documentation through the connected GitHub repository.
+- Compared the continuation start SHA to the post-documentation SHA and confirmed the repository was 47 commits ahead and 0 behind before this handoff commit.
+- GitHub combined-status/workflow surfaces did not provide positive executable evidence at the beginning of the continuation. Missing status contexts are not treated as a pass.
 
 ### Local execution unavailable
 
-The execution sandbox still could not resolve `github.com` from its shell when attempting repository access, so a clean clone, registry-backed `npm install`, local `npm run verify`, Playwright execution, Cargo/native checks, and dependency audit could not be performed here. No passing test/build/CI result is fabricated.
+The execution sandbox could not resolve `github.com` from its shell when repository access was attempted earlier in this continuation, so a clean clone, registry-backed `npm install`, local `npm run verify`, Playwright execution, Cargo/native checks, and dependency audit were not performed here. No passing test/build/CI result is fabricated.
 
 The repository-side workflows remain the authoritative executable verification path until a network-enabled clean checkout is available.
 
@@ -138,8 +256,8 @@ npm run ios:build
 ## Publication evidence still required
 
 1. Obtain positive CI, E2E, Native CI, CodeQL, dependency-audit, version-sync, release-gate, test, build, and bundle-budget evidence for the exact final 2.0.12 commit.
-2. Download the successful exact-commit `publication-screenshots-<sha>` artifact, verify `EVIDENCE.txt`, visually review every capture, and promote accepted images to `docs/screenshots/`.
-3. If/when `v2.0.12` is tagged, confirm the tag workflow passes and retain/review `release-screenshots-v2.0.12-<sha>` evidence.
+2. Download the successful exact-commit `publication-screenshots-<sha>` artifact, verify `EVIDENCE.txt`, verify every PNG against `SHA256SUMS.txt`, visually review every capture, and promote only accepted images to `docs/screenshots/`.
+3. If/when `v2.0.12` is tagged, confirm the tag workflow passes, verify `release-screenshots-v2.0.12-<sha>`, and verify the published `gradecraft-pwa.zip` against `gradecraft-pwa.zip.sha256`.
 4. Build and smoke-test Windows packages on Windows.
 5. Build and smoke-test macOS packages on macOS.
 6. Build and smoke-test intended Linux bundle formats on Linux.
@@ -153,8 +271,8 @@ npm run ios:build
 ## Open issues / limitations
 
 - No known blocker/critical grade-calculation defect was identified during this continuation.
-- Exact latest workflow results are still not positively visible through the available status surface, so the release is not declared green.
-- Real native package builds, device smoke tests, signing/notarization/provisioning, cross-target portability checks, and approved screenshots remain external evidence tasks.
+- Exact final workflow results are not yet positively evidenced in this environment, so the release is not declared green.
+- Real native package builds, device smoke tests, signing/notarization/provisioning, cross-target portability checks, approved screenshots, and hosted deployment evidence remain external tasks.
 
 ## Migration notes
 
@@ -164,40 +282,34 @@ Before uninstalling a native application or clearing application data, users who
 
 ## 2.0.12 release notes draft
 
-GradeCraft 2.0.12 delivers the privacy-first grade-management experience through one shared React/TypeScript product across web/PWA, Windows, macOS, Linux, Android, and iOS/iPadOS source targets. The candidate combines weighted and points grading, GPA and what-if planning, semester organization/search, English/Hindi localization, local recovery, authenticated portable backups, flexible staged CSV import, hardened spreadsheet export boundaries, offline PWA behavior, Tauri native packaging and save dialogs, guarded destructive data operations, stronger export/restore error handling, comprehensive automated tests, deterministic publication screenshot evidence, executable web/native release gates, exact tag/version checks, and package-derived user-visible versioning.
+GradeCraft 2.0.12 delivers the privacy-first grade-management experience through one shared React/TypeScript product across web/PWA, Windows, macOS, Linux, Android, and iOS/iPadOS source targets. The candidate combines weighted and points grading, GPA and what-if planning, semester organization/search, English/Hindi localization, local recovery, authenticated portable backups, flexible staged CSV import, hardened spreadsheet export boundaries, safe cross-platform filenames, offline PWA behavior, Tauri native packaging and save dialogs, guarded destructive data operations, explicit persistence-failure warnings, accessible dialogs/current navigation, comprehensive automated regressions, deterministic publication screenshot evidence with provenance/checksums, executable web/native release gates, exact tag/version checks, PWA archive checksums, and least-privilege GitHub release publication.
 
-## Recent continuation commits
+## Prior continuation completed on 2026-08-21
 
-### 2026-08-21 data and evidence hardening
+### Data-safety fixes
 
-- `59b4a426` — fix(data): preserve passphrase when restore is cancelled
-- `f02442b3` — test(data): cover cancelled encrypted restores
-- `f3cf80b7` — feat(i18n): add export failure safety message
-- `ec33ab85` — fix(data): surface export write failures
-- `760b03c1` — test(data): cover export write failure feedback
-- `4cd0ee74` — test(e2e): capture publication screenshot candidates
-- `b93c75a8` — ci(e2e): publish screenshot evidence artifacts
-- `bbbf2b6e` — test(release): require screenshot evidence wiring
-- `42810fdd` — ci(release): retain tagged screenshot evidence
-- `8db4f8bb` — docs(screenshots): document verified capture workflow
-- `26e1b0d3` — docs(testing): document screenshot evidence coverage
-- `53c5d3ad` — docs(release): define screenshot evidence promotion
-- `f26e3b44` — docs(release): integrate screenshot evidence artifacts
-- `7f3fa63c` — docs(changelog): record release evidence hardening
-- `50ed1e32` — docs(roadmap): track screenshot evidence automation
-- `04da959c` — test(release): protect tagged screenshot evidence
+- Fixed encrypted restore cancellation so successfully decrypted data is not treated as accepted when the user declines the final destructive replacement confirmation.
+- Encrypted restore passphrases are now retained when that confirmation is cancelled, allowing the user to retry without unnecessary re-entry.
+- Plain JSON/CSV export write failures now surface a localized user-facing safety message instead of being logged silently.
+- Added English and Hindi export-failure messaging without exposing raw filesystem exceptions.
+- Preserved the existing rule that successful encrypted backup operations clear passphrases from live component state.
 
-### Prior native follow-up commits not previously listed in this handoff
+### Regression coverage
 
-- `303b7c71` — fix(native): make compile check fresh-checkout safe
-- `eb6a13fb` — fix(native): await and handle native export outcomes
-- `86ee3504` — test(native): model successful async export saves
-- `7c81fb6a` — test(native): cover cancelled native backup saves
+`tests/DataPage.test.tsx` covers successful encrypted export clearing, native save cancellation, export write rejection, standard restore cancellation, and encrypted restore cancellation/passphrase retention.
+
+### Publication screenshot evidence automation
+
+Added deterministic Playwright screenshot candidate capture for onboarding, dashboard, course detail, what-if, GPA, settings light/dark, and import/export. Candidate evidence is never automatically approved as repository publication screenshots, and browser screenshots are never native build evidence.
+
+### Prior release-gate/documentation hardening
+
+The static gate already protected screenshot-evidence tooling, native source/capability/package/version wiring, and shared quality steps. Release/testing/readiness/screenshot/roadmap/changelog documentation was synchronized for that baseline.
 
 ## Next exact work
 
-1. Inspect the GitHub Actions results for the latest `main` SHA and fix any CI/E2E/native failures rather than tagging around them.
-2. If E2E is green, review the exact-SHA screenshot artifact and promote only accepted real captures.
+1. Inspect GitHub Actions results for the final `main` SHA created by this handoff and fix any CI/E2E/Native/CodeQL failures rather than tagging around them.
+2. If E2E is green, download the exact-SHA screenshot artifact, verify provenance and `SHA256SUMS.txt`, visually review it, and promote only accepted real captures.
 3. Run the complete 2.0.12 clean-checkout release gate from a network-enabled environment.
 4. Perform real platform package builds/smoke tests and web/native portability checks.
-5. Only after all required exact-commit evidence is positive, validate and create `v2.0.12`.
+5. Only after all required exact-commit evidence is positive, validate and create `v2.0.12`; then verify the published PWA ZIP checksum and retain exact-tag evidence.
