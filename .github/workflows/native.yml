@@ -19,9 +19,14 @@ on:
       - "package.json"
       - "vite.config.ts"
       - ".github/workflows/native.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   desktop-core:
