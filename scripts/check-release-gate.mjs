@@ -146,6 +146,12 @@ for (const marker of [
   "publication-screenshots-${{ github.sha }}",
   "test-results/publication-screenshots/",
   "EVIDENCE.txt",
+  "repository=$GITHUB_REPOSITORY",
+  "ref=$GITHUB_REF",
+  "event=$GITHUB_EVENT_NAME",
+  "SHA256SUMS.txt",
+  "sha256sum",
+  "test -s SHA256SUMS.txt",
 ]) {
   if (!e2e.includes(marker)) failures.push(`E2E workflow is missing release evidence marker: ${marker}`);
 }
@@ -177,7 +183,13 @@ for (const marker of [
   "release-screenshots-${{ github.ref_name }}-${{ github.sha }}",
   "test-results/publication-screenshots/",
   "EVIDENCE.txt",
+  "repository=$GITHUB_REPOSITORY",
+  "ref=$GITHUB_REF",
+  "event=$GITHUB_EVENT_NAME",
   "tag=$GITHUB_REF_NAME",
+  "SHA256SUMS.txt",
+  "sha256sum",
+  "test -s SHA256SUMS.txt",
 ]) {
   if (!release.includes(marker)) failures.push(`Release workflow is missing screenshot evidence marker: ${marker}`);
 }
