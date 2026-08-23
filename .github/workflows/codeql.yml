@@ -7,10 +7,15 @@ on:
     branches: ["main"]
   schedule:
     - cron: "23 3 * * 4"
+  workflow_dispatch:
 
 permissions:
   contents: read
   security-events: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
