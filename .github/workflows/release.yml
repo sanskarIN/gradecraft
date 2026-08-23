@@ -48,7 +48,7 @@ jobs:
           test -s SHA256SUMS.txt
       - name: Upload tagged publication screenshot candidates
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-screenshots-${{ github.ref_name }}-${{ github.sha }}
           path: test-results/publication-screenshots/
@@ -56,7 +56,7 @@ jobs:
           retention-days: 30
       - name: Upload release Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-playwright-report
           path: playwright-report/
@@ -67,7 +67,7 @@ jobs:
       - name: Hash PWA release archive
         run: sha256sum gradecraft-pwa.zip > gradecraft-pwa.zip.sha256
       - name: Stage verified PWA release assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-pwa-${{ github.ref_name }}-${{ github.sha }}
           path: |
