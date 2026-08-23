@@ -29,6 +29,19 @@ describe("App", () => {
       </AppProvider>,
     );
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("marks a course-specific what-if route as the current planner navigation item", () => {
+    window.location.hash = "#/what-if/course-1";
+    render(
+      <AppProvider>
+        <App />
+      </AppProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: "What-if" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Overview" })).not.toHaveAttribute("aria-current");
   });
 
   it("warns when changes cannot be persisted locally", () => {
