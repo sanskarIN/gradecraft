@@ -65,5 +65,7 @@ jobs:
         run: sha256sum gradecraft-pwa.zip > gradecraft-pwa.zip.sha256
       - uses: softprops/action-gh-release@v2
         with:
-          files: gradecraft-pwa.zip
+          files: |
+            gradecraft-pwa.zip
+            gradecraft-pwa.zip.sha256
           generate_release_notes: true
