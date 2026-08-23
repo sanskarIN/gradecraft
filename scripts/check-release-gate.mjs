@@ -192,8 +192,13 @@ for (const marker of [
   "sha256sum",
   "test -s SHA256SUMS.txt",
   "gradecraft-pwa.zip.sha256",
+  "release-pwa-${{ github.ref_name }}-${{ github.sha }}",
+  "actions/download-artifact@v4",
+  "needs: verify",
+  "permissions:\n  contents: read",
+  "permissions:\n      contents: write",
 ]) {
-  if (!release.includes(marker)) failures.push(`Release workflow is missing screenshot evidence marker: ${marker}`);
+  if (!release.includes(marker)) failures.push(`Release workflow is missing hardened publication marker: ${marker}`);
 }
 if (!release.includes('GRADECRAFT_E2E_PREBUILT: "1"')) {
   failures.push("Release E2E must exercise the already verified production build.");
