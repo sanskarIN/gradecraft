@@ -30,7 +30,10 @@ jobs:
         if: success()
         run: |
           {
+            echo "repository=$GITHUB_REPOSITORY"
             echo "commit=$GITHUB_SHA"
+            echo "ref=$GITHUB_REF"
+            echo "event=$GITHUB_EVENT_NAME"
             echo "workflow=$GITHUB_WORKFLOW"
             echo "run_id=$GITHUB_RUN_ID"
             echo "run_attempt=$GITHUB_RUN_ATTEMPT"
