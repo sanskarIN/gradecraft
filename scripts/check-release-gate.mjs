@@ -176,6 +176,7 @@ for (const command of [
   "npm audit --audit-level=high",
   "npx playwright install --with-deps chromium",
   "npm run test:e2e",
+  "sha256sum gradecraft-pwa.zip > gradecraft-pwa.zip.sha256",
 ]) {
   if (!release.includes(command)) failures.push(`Release workflow is missing gate: ${command}`);
 }
@@ -190,6 +191,7 @@ for (const marker of [
   "SHA256SUMS.txt",
   "sha256sum",
   "test -s SHA256SUMS.txt",
+  "gradecraft-pwa.zip.sha256",
 ]) {
   if (!release.includes(marker)) failures.push(`Release workflow is missing screenshot evidence marker: ${marker}`);
 }
