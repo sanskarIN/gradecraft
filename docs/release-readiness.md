@@ -17,7 +17,7 @@ This document separates repository-complete engineering work from evidence that 
 | Production web/frontend build | `npm run build` |
 | Bundle budgets | `npm run perf:budget` |
 | Browser journeys | `npm run test:e2e` |
-| Browser screenshot evidence | `e2e/publication-screenshots.spec.ts` plus successful E2E artifact |
+| Browser screenshot evidence | `e2e/publication-screenshots.spec.ts` plus successful E2E artifact, provenance, and SHA-256 manifest |
 | Native Rust/Tauri compile check | `npm run native:check` |
 | Windows native core | `.github/workflows/native.yml` on `windows-latest` |
 | macOS native core | `.github/workflows/native.yml` on `macos-latest` |
@@ -27,8 +27,11 @@ This document separates repository-complete engineering work from evidence that 
 | Dependency audit | `npm audit --audit-level=high` |
 | Static security analysis | GitHub CodeQL workflow |
 | Tag/package consistency | `npm run release:tag -- vX.Y.Z` |
+| PWA release integrity | Published `gradecraft-pwa.zip` plus `gradecraft-pwa.zip.sha256` |
 
-The main CI workflow runs the shared non-browser quality gates plus the dependency audit and uploads the coverage report. The E2E workflow installs Chromium, runs Playwright, preserves the HTML report, and on success uploads commit-addressed screenshot candidates plus evidence metadata. The Native workflow verifies the shared Tauri shell on the three desktop runner families and validates mobile project generation.
+The main CI workflow runs the shared non-browser quality gates plus the dependency audit and uploads the coverage report. The E2E workflow installs Chromium, runs Playwright, preserves the HTML report, and on success uploads commit-addressed screenshot candidates plus evidence metadata and hashes. The Native workflow verifies the shared Tauri shell on the three desktop runner families and validates mobile project generation.
+
+CI, E2E, Native, and CodeQL support manual dispatch for exact-ref verification. They cancel superseded runs on the same ref so obsolete work does not obscure the newest result. Every repository checkout used by project code disables persisted Git credentials.
 
 ## Version 2.0.12 candidate commands
 
@@ -55,7 +58,7 @@ Source support is not the same as a verified release artifact. A platform should
 
 | Target | Minimum release evidence |
 | --- | --- |
-| Web/PWA | `npm run build`, browser E2E, reviewed screenshot evidence, deployed/preview PWA smoke test |
+| Web/PWA | `npm run build`, browser E2E, reviewed screenshot evidence, deployed/preview PWA smoke test, release ZIP checksum verification |
 | Windows | Native workflow green plus `npm run native:build` and Windows package smoke test |
 | macOS | Native workflow green plus `npm run native:build` and macOS app smoke test |
 | Linux | Native workflow green plus `npm run native:build` and intended Linux bundle smoke test |
@@ -66,11 +69,21 @@ Signing/notarization/provisioning evidence belongs to the trusted release enviro
 
 ## Screenshot evidence integrity
 
-The E2E workflow captures onboarding, dashboard, representative course detail, what-if, GPA, light/dark settings, and import/export views from the real production UI. A successful run uploads `publication-screenshots-<commit-sha>` and records the commit/workflow identifiers in `EVIDENCE.txt`.
+The E2E workflow captures onboarding, dashboard, representative course detail, what-if, GPA, light/dark settings, and import/export views from the real production UI. A successful run uploads `publication-screenshots-<commit-sha>` and records repository, exact commit, ref, triggering event, workflow, run ID, and attempt in `EVIDENCE.txt`.
 
-The tag-release workflow captures the same views against the already-built `dist/` artifact and uploads `release-screenshots-<tag>-<commit-sha>` with tag/commit metadata.
+Before upload, every PNG is hashed into `SHA256SUMS.txt`. The tag-release workflow captures the same views against the already-built `dist/` artifact and uploads `release-screenshots-<tag>-<commit-sha>` with the same provenance plus the exact tag.
 
-These are candidate artifacts. They become repository publication screenshots only after a release operator confirms the exact successful run and visually reviews every image. Browser screenshots do not establish native package readiness. See [`screenshots/README.md`](screenshots/README.md).
+After downloading evidence, verify `SHA256SUMS.txt` with a SHA-256 checker before promoting images. These are still candidate artifacts: they become repository publication screenshots only after a release operator confirms the exact successful run and visually reviews every image. Browser screenshots do not establish native package readiness. See [`screenshots/README.md`](screenshots/README.md).
+
+## Tagged PWA publication boundary
+
+The tag workflow deliberately separates verification from publication:
+
+1. `verify` runs with read-only repository permission, executes the release gates, captures/hashes screenshot evidence, packages the verified `dist/`, creates `gradecraft-pwa.zip.sha256`, and stages those PWA files as a short-lived Actions artifact.
+2. `publish` depends on `verify`, downloads only those staged files, receives `contents: write`, and publishes the GitHub release.
+3. Repository code is not checked out or executed in the write-capable publication job.
+
+This boundary reduces the credential scope available to dependency/build/test code while preserving automated GitHub release creation.
 
 ## Manual evidence still required before publication
 
@@ -79,7 +92,8 @@ These are candidate artifacts. They become repository publication screenshots on
 - Verify PWA installation, update behavior, subpath hosting, and offline shell behavior in a real browser.
 - Verify native system save dialogs and cross-platform backup/CSV interoperability on native targets being published.
 - Review current CodeQL, Dependabot, CI, E2E, and Native results in GitHub Actions.
-- Review and promote browser screenshot candidates only from a positively verified exact-commit run.
+- Review and promote browser screenshot candidates only from a positively verified exact-commit run after verifying the hash manifest.
+- Verify the published PWA ZIP against `gradecraft-pwa.zip.sha256`.
 - For Android/iOS releases, test an emulator/simulator and a physical device when practical before store publication.
 - Capture native/store screenshots only after the verified target package is running.
 - Verify any hosted demo URL before adding it to the README.
