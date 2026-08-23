@@ -113,6 +113,15 @@ for (const marker of [
   if (!readme.includes(marker)) failures.push(`README.md is missing required marker: ${marker}`);
 }
 
+const requireWorkflowControls = (workflow, label, { manual = false } = {}) => {
+  for (const marker of ["concurrency:", "cancel-in-progress: true"]) {
+    if (!workflow.includes(marker)) failures.push(`${label} workflow is missing concurrency control: ${marker}`);
+  }
+  if (manual && !workflow.includes("workflow_dispatch:")) {
+    failures.push(`${label} workflow must support workflow_dispatch for exact-ref verification.`);
+  }
+};
+
 const ci = read(".github/workflows/ci.yml");
 for (const command of [
   "npm run typecheck",
@@ -129,6 +138,7 @@ for (const command of [
 ]) {
   if (!ci.includes(command)) failures.push(`CI is missing quality gate: ${command}`);
 }
+requireWorkflowControls(ci, "CI", { manual: true });
 
 const e2e = read(".github/workflows/e2e.yml");
 for (const marker of [
@@ -139,11 +149,19 @@ for (const marker of [
 ]) {
   if (!e2e.includes(marker)) failures.push(`E2E workflow is missing release evidence marker: ${marker}`);
 }
+requireWorkflowControls(e2e, "E2E", { manual: true });
 
 const nativeCi = read(".github/workflows/native.yml");
 for (const command of ["npm run native:check", "npm run android:init", "npm run ios:init"]) {
   if (!nativeCi.includes(command)) failures.push(`Native CI is missing platform gate: ${command}`);
 }
+requireWorkflowControls(nativeCi, "Native", { manual: true });
+
+const codeql = read(".github/workflows/codeql.yml");
+for (const marker of ["github/codeql-action/init", "github/codeql-action/analyze"]) {
+  if (!codeql.includes(marker)) failures.push(`CodeQL workflow is missing scan marker: ${marker}`);
+}
+requireWorkflowControls(codeql, "CodeQL", { manual: true });
 
 const release = read(".github/workflows/release.yml");
 for (const command of [
