@@ -96,6 +96,16 @@ for (const script of requiredScripts) {
 }
 
 const read = (file) => readFileSync(file, "utf8");
+const countOccurrences = (text, marker) => text.split(marker).length - 1;
+const requireCheckoutIsolation = (workflow, label) => {
+  const checkouts = countOccurrences(workflow, "actions/checkout@v7");
+  const isolated = countOccurrences(workflow, "persist-credentials: false");
+  if (checkouts === 0) failures.push(`${label} workflow is missing actions/checkout.`);
+  if (isolated !== checkouts) {
+    failures.push(`${label} workflow must disable persisted credentials for every checkout.`);
+  }
+};
+
 const readme = read("README.md");
 for (const marker of [
   "Made by the Sanskar",
@@ -139,6 +149,7 @@ for (const command of [
   if (!ci.includes(command)) failures.push(`CI is missing quality gate: ${command}`);
 }
 requireWorkflowControls(ci, "CI", { manual: true });
+requireCheckoutIsolation(ci, "CI");
 
 const e2e = read(".github/workflows/e2e.yml");
 for (const marker of [
@@ -156,18 +167,21 @@ for (const marker of [
   if (!e2e.includes(marker)) failures.push(`E2E workflow is missing release evidence marker: ${marker}`);
 }
 requireWorkflowControls(e2e, "E2E", { manual: true });
+requireCheckoutIsolation(e2e, "E2E");
 
 const nativeCi = read(".github/workflows/native.yml");
 for (const command of ["npm run native:check", "npm run android:init", "npm run ios:init"]) {
   if (!nativeCi.includes(command)) failures.push(`Native CI is missing platform gate: ${command}`);
 }
 requireWorkflowControls(nativeCi, "Native", { manual: true });
+requireCheckoutIsolation(nativeCi, "Native");
 
 const codeql = read(".github/workflows/codeql.yml");
 for (const marker of ["github/codeql-action/init", "github/codeql-action/analyze"]) {
   if (!codeql.includes(marker)) failures.push(`CodeQL workflow is missing scan marker: ${marker}`);
 }
 requireWorkflowControls(codeql, "CodeQL", { manual: true });
+requireCheckoutIsolation(codeql, "CodeQL");
 
 const release = read(".github/workflows/release.yml");
 for (const command of [
@@ -203,6 +217,7 @@ for (const marker of [
 if (!release.includes('GRADECRAFT_E2E_PREBUILT: "1"')) {
   failures.push("Release E2E must exercise the already verified production build.");
 }
+requireCheckoutIsolation(release, "Release");
 
 const tauriConfig = JSON.parse(read("src-tauri/tauri.conf.json"));
 if (tauriConfig.identifier !== "in.sanskar.gradecraft") {
