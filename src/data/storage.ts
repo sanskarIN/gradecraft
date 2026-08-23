@@ -77,9 +77,15 @@ export function saveData(data: AppData, storage: Storage = localStorage): boolea
   }
 }
 
-export function clearData(storage: Storage = localStorage): void {
-  storage.removeItem(STORAGE_KEY);
-  storage.removeItem(BACKUP_KEY);
+export function clearData(storage: Storage = localStorage): boolean {
+  try {
+    storage.removeItem(STORAGE_KEY);
+    storage.removeItem(BACKUP_KEY);
+    return true;
+  } catch (error) {
+    log("error", "storage_clear_failed", { kind: errorKind(error) });
+    return false;
+  }
 }
 
 export function storageKeys() {
