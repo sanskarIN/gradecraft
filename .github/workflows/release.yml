@@ -37,6 +37,13 @@ jobs:
             echo "run_id=$GITHUB_RUN_ID"
             echo "run_attempt=$GITHUB_RUN_ATTEMPT"
           } > test-results/publication-screenshots/EVIDENCE.txt
+      - name: Hash tagged publication screenshot candidates
+        if: success()
+        shell: bash
+        run: |
+          cd test-results/publication-screenshots
+          find . -maxdepth 1 -type f -name '*.png' -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS.txt
+          test -s SHA256SUMS.txt
       - name: Upload tagged publication screenshot candidates
         if: success()
         uses: actions/upload-artifact@v4
