@@ -28,7 +28,10 @@ jobs:
         if: success()
         run: |
           {
+            echo "repository=$GITHUB_REPOSITORY"
             echo "commit=$GITHUB_SHA"
+            echo "ref=$GITHUB_REF"
+            echo "event=$GITHUB_EVENT_NAME"
             echo "tag=$GITHUB_REF_NAME"
             echo "workflow=$GITHUB_WORKFLOW"
             echo "run_id=$GITHUB_RUN_ID"
