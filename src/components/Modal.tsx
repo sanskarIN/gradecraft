@@ -7,7 +7,7 @@ export function Modal({
   onClose,
   closeLabel,
   children,
-}: PropsWithChildren<{ title: string; open: boolean; onClose: () => void; closeLabel?: string }>) {
+}: PropsWithChildren<{ title: string; open: boolean; onClose: () => void; closeLabel: string }>) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -33,7 +33,7 @@ export function Modal({
     >
       <div className="modal__header">
         <h2 id={titleId}>{title}</h2>
-        <Button variant="ghost" onClick={onClose} aria-label={closeLabel ?? title}>
+        <Button variant="ghost" onClick={onClose} aria-label={closeLabel}>
           ×
         </Button>
       </div>
