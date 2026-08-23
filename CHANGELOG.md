@@ -4,7 +4,38 @@ All notable changes to GradeCraft are documented here.
 
 ## [Unreleased]
 
-No unreleased changes are currently queued after the 2.0.12 release-candidate preparation.
+### Added
+
+- Visible English/Hindi data-safety warning when browser or WebView persistence writes fail, so recent changes are not falsely presented as safely stored.
+- SHA-256 manifests for normal and tagged publication screenshot evidence, with repository/ref/event/run provenance recorded beside each artifact.
+- SHA-256 checksum publication beside the tagged `gradecraft-pwa.zip` release archive.
+- Regression coverage for modal accessibility/cancel behavior, denied/interrupted storage access, failed local-data clearing, persistence warnings, current navigation state, stale what-if deep links, and cross-platform export filename safety.
+
+### Changed
+
+- CI, E2E, Native, and CodeQL workflows can be manually dispatched for exact-ref verification and cancel superseded runs on the same ref.
+- The tag-release workflow separates read-only verification from the write-capable publication job; only verified staged release assets cross that boundary.
+- Repository checkouts in quality, E2E, native, CodeQL, and tagged verification disable persisted Git credentials.
+- Modal dialogs now expose their visible heading through `aria-labelledby` and require an explicit localized close label.
+- Primary navigation marks the active route with `aria-current`, including course-specific what-if planner routes.
+- What-if deep links now recover to an available course if the linked course has been deleted or replaced.
+- Export filenames are normalized centrally for browser and Tauri targets, including Windows reserved names, illegal path characters, trailing separators, and excessive length.
+- The static release gate now protects manual rerun support, concurrency controls, screenshot provenance/hashes, PWA checksums, least-privilege publication structure, and checkout credential isolation.
+
+### Fixed
+
+- Denied Local Storage reads no longer crash GradeCraft during startup.
+- Interrupted recovery-record inspection no longer triggers destructive cleanup of potentially recoverable local data.
+- Failed local-data clearing no longer resets only the in-memory view while leaving old persisted data behind.
+- Storage save failures are no longer ignored by application state.
+- Native dialog cancel events no longer risk invoking the modal close callback twice through the controlled close path.
+- Native/browser exports no longer pass unsafe user-derived course names or codes directly to platform filename handling.
+
+### Security
+
+- Release verification no longer runs repository code with a write-capable GitHub token.
+- Checkout credentials are not persisted into workspaces used by project scripts or tests.
+- Publication screenshot candidates and PWA release archives now include cryptographic checksums for integrity verification after download/promotion.
 
 ## [2.0.12] - 2026-08-19
 
