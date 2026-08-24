@@ -40,8 +40,8 @@ describe("DataPage data safety", () => {
         <DataPage />
       </AppProvider>,
     );
-    const passphrase = screen.getByLabelText("Backup passphrase");
-    const confirm = screen.getByLabelText("Confirm passphrase");
+    const passphrase = screen.getByLabelText(/Backup passphrase/);
+    const confirm = screen.getByLabelText(/Confirm passphrase/);
     fireEvent.change(passphrase, { target: { value: "correct horse battery staple" } });
     fireEvent.change(confirm, { target: { value: "correct horse battery staple" } });
     fireEvent.click(screen.getByRole("button", { name: "Export encrypted backup" }));
@@ -57,8 +57,8 @@ describe("DataPage data safety", () => {
         <DataPage />
       </AppProvider>,
     );
-    const passphrase = screen.getByLabelText("Backup passphrase");
-    const confirm = screen.getByLabelText("Confirm passphrase");
+    const passphrase = screen.getByLabelText(/Backup passphrase/);
+    const confirm = screen.getByLabelText(/Confirm passphrase/);
     fireEvent.change(passphrase, { target: { value: "correct horse battery staple" } });
     fireEvent.change(confirm, { target: { value: "correct horse battery staple" } });
     fireEvent.click(screen.getByRole("button", { name: "Export encrypted backup" }));
@@ -119,7 +119,7 @@ describe("DataPage data safety", () => {
         <DataPage />
       </AppProvider>,
     );
-    const passphrase = screen.getByLabelText("Backup passphrase");
+    const passphrase = screen.getByLabelText(/Backup passphrase/);
     fireEvent.change(passphrase, { target: { value: "correct horse battery staple" } });
     const encryptedInputs = container.querySelectorAll(
       'input[type="file"][accept=".json,application/json"]',
