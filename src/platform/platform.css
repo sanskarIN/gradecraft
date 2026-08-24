@@ -20,30 +20,34 @@ body,
 
 body {
   min-height: 100dvh;
+}
+
+:root[data-runtime="native"] body,
+:root[data-runtime="pwa"] body {
   overscroll-behavior-y: none;
 }
 
 .topbar {
-  padding-top: max(1rem, var(--safe-area-top));
-  padding-right: max(clamp(1rem, 4vw, 4rem), var(--safe-area-right));
-  padding-left: max(clamp(1rem, 4vw, 4rem), var(--safe-area-left));
+  padding-top: calc(1rem + var(--safe-area-top));
+  padding-right: calc(clamp(1rem, 4vw, 4rem) + var(--safe-area-right));
+  padding-left: calc(clamp(1rem, 4vw, 4rem) + var(--safe-area-left));
 }
 
 .main-content {
-  padding-bottom: max(5rem, calc(2rem + var(--safe-area-bottom)));
+  padding-bottom: calc(5rem + var(--safe-area-bottom));
 }
 
 .footer {
-  padding-right: max(1rem, var(--safe-area-right));
-  padding-bottom: max(2rem, calc(1rem + var(--safe-area-bottom)));
-  padding-left: max(1rem, var(--safe-area-left));
+  padding-right: calc(1rem + var(--safe-area-right));
+  padding-bottom: calc(2rem + var(--safe-area-bottom));
+  padding-left: calc(1rem + var(--safe-area-left));
 }
 
 .onboarding {
-  padding-top: max(1rem, var(--safe-area-top));
-  padding-right: max(1rem, var(--safe-area-right));
-  padding-bottom: max(1rem, var(--safe-area-bottom));
-  padding-left: max(1rem, var(--safe-area-left));
+  padding-top: calc(1rem + var(--safe-area-top));
+  padding-right: calc(1rem + var(--safe-area-right));
+  padding-bottom: calc(1rem + var(--safe-area-bottom));
+  padding-left: calc(1rem + var(--safe-area-left));
 }
 
 .modal {
@@ -87,11 +91,11 @@ body {
 @media (max-height: 520px) and (orientation: landscape) {
   .main-content {
     padding-top: 1rem;
-    padding-bottom: max(2rem, calc(1rem + var(--safe-area-bottom)));
+    padding-bottom: calc(2rem + var(--safe-area-bottom));
   }
 
   .topbar {
-    padding-top: max(0.6rem, var(--safe-area-top));
+    padding-top: calc(0.6rem + var(--safe-area-top));
     padding-bottom: 0.6rem;
   }
 }
