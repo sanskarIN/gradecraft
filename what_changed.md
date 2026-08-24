@@ -2,11 +2,11 @@
 
 ## Current milestone
 
-**Package version:** 2.0.12  
-**Branch:** `feature/full-cross-platform-support`  
-**Base commit:** `28616a38a079f1917115983f00cdcefe5aa97df5`  
-**Pull request:** #21 — `feat: complete cross-platform runtime and native verification`  
-**Milestone:** Full cross-platform runtime, responsive/mobile adaptation, native permission separation, and real native compile verification  
+**Package version:** 2.0.12
+**Branch:** `feature/full-cross-platform-support`
+**Base commit:** `28616a38a079f1917115983f00cdcefe5aa97df5`
+**Pull request:** #21 — `feat: complete cross-platform runtime and native verification`
+**Milestone:** Full cross-platform runtime, responsive/mobile adaptation, native permission separation, and real native compile verification
 **Date:** 2026-08-24
 
 ## Current support state
@@ -71,7 +71,7 @@ The platform layer now includes:
 
 ### Native capability separation
 
-Replaced the previous single desktop-schema capability with three target-appropriate capability files:
+The native permission model is now target-specific:
 
 - `src-tauri/capabilities/default.json`
   - platform-neutral shared capability;
@@ -86,11 +86,11 @@ Replaced the previous single desktop-schema capability with three target-appropr
   - iOS and Android only;
   - dialog and file-write permissions required by user-requested exports.
 
-This removes the desktop-schema assumption from the mobile permission definition while preserving the existing shared export implementation.
+This removes the desktop-schema assumption from mobile permissions while retaining the shared native export implementation.
 
 ### Real native build CI
 
-Upgraded `.github/workflows/native.yml` from scaffold-oriented validation to compilation-oriented validation.
+`.github/workflows/native.yml` now verifies actual compilation instead of only native-project generation.
 
 Desktop matrix:
 
@@ -98,24 +98,19 @@ Desktop matrix:
 - Windows;
 - macOS.
 
-Each desktop runner now:
+Each desktop runner regenerates native icons, performs `npm run native:check`, and compiles the debug desktop application with `npm run native:build -- --debug --no-bundle`.
 
-1. installs its required toolchain/dependencies;
-2. regenerates native icons;
-3. runs `npm run native:check`;
-4. compiles the actual debug desktop application with `npm run native:build -- --debug --no-bundle`.
+Android CI:
 
-Android CI now:
+1. configures Java and the installed Android NDK;
+2. initializes the Android project;
+3. compiles an x86_64 debug APK with `npm run android:build -- --debug --apk --target x86_64 --ci`;
+4. uploads the APK as short-lived build evidence.
 
-1. selects Java 17 and the installed Android NDK;
-2. initializes the generated Android project;
-3. compiles an x86_64 debug APK using `npm run android:build -- --debug --apk --target x86_64 --ci`;
-4. uploads the APK as a short-lived workflow artifact when the build succeeds.
-
-iOS CI now:
+iOS CI:
 
 1. runs on macOS;
-2. initializes the generated iOS project;
+2. initializes the iOS project;
 3. compiles an unsigned Apple-Silicon simulator application with `npm run ios:build -- --debug --target aarch64-sim --no-sign`.
 
 Store signing, notarization, provisioning, and production signing secrets remain deliberately outside pull-request CI.
@@ -127,56 +122,68 @@ Added `tests/platform.test.ts` covering:
 - Android native phone detection;
 - iPadOS PWA detection when Safari reports `MacIntel`;
 - Windows native desktop detection;
-- generic desktop browser fallback to the web target;
-- publication of platform/runtime/form-factor/touch/standalone root attributes.
+- generic desktop browser fallback;
+- root platform/runtime/form-factor/touch/standalone attributes.
 
 ### Release-gate hardening
 
-Extended `scripts/check-release-gate.mjs` so cross-platform support cannot silently regress.
+`scripts/check-release-gate.mjs` now requires and validates:
 
-The static gate now requires and validates:
-
-- `index.html` mobile installation/safe-area metadata;
-- `src/main.tsx` platform initialization and stylesheet wiring;
-- `src/platform/runtime.ts`;
-- `src/platform/platform.css`;
-- `tests/platform.test.ts`;
+- mobile installation/safe-area metadata;
+- platform startup wiring;
+- runtime and layout adaptation files;
+- platform regression tests;
 - all three native capability files;
-- exact desktop and mobile capability platform sets;
-- generated desktop/mobile capability schema references;
-- Android minimum SDK configuration;
-- explicit iOS minimum system version;
-- actual desktop compile commands in Native CI;
-- actual Android APK compile command in Native CI;
-- actual unsigned iOS simulator compile command in Native CI;
+- exact desktop/mobile capability platform sets and generated schemas;
+- Android minimum SDK and explicit iOS minimum system version;
+- actual desktop, Android APK, and iOS simulator compile commands in Native CI;
 - Android smoke-build artifact retention;
-- all previously existing CI, E2E, CodeQL, release, credential-isolation, screenshot-integrity, and PWA checksum gates.
+- the existing CI, E2E, CodeQL, release, credential-isolation, screenshot-integrity, and PWA checksum gates.
 
-### Documentation updated
+### Strict quality-gate repairs found during PR validation
 
-Updated `README.md` with:
+GitHub Actions exposed strictness defects that predated or were adjacent to the cross-platform work. They were fixed instead of weakening the checks.
 
-- browser and PWA as explicit first-class targets;
-- Windows/macOS/Linux/Android/iOS/iPadOS/ChromeOS support matrix;
-- runtime and form-factor adaptation behavior;
-- safe-area/touch/mobile behavior;
-- platform-aware security capability structure;
-- `src/platform/` architecture entry;
-- actual Native CI compilation coverage.
+TypeScript fixes:
 
-Updated `docs/platforms.md` with:
+- added explicit React class `override` modifiers in `ErrorBoundary`;
+- preserved non-optional course narrowing in `CoursePage` callbacks;
+- guarded indexed file inputs in data tests;
+- typed the throwing ErrorBoundary test fixture as `never`;
+- dispatched the native dialog `cancel` event explicitly;
+- used Testing Library `within(dialog)` for scoped role queries.
 
-- runtime/form-factor attribute contract;
-- safe-area and dynamic-viewport behavior;
-- Android CI compilation command;
-- iOS unsigned simulator compilation command;
-- desktop/mobile capability split;
-- platform regression gates;
-- real native compilation matrix;
-- safe-area troubleshooting;
-- updated source layout.
+Lint fixes:
+
+- documented intentionally skipped scan roots instead of using empty catch blocks;
+- simplified release-gate target marker quoting;
+- removed control-character regular expressions from download filename sanitation while preserving the same safety policy;
+- updated filename tests to assert character-code safety without prohibited regex controls;
+- replaced fake-async mocks with explicit resolved promises.
+
+Validation evidence before this handoff-only commit:
+
+- strict TypeScript: passed;
+- ESLint with zero warnings: passed;
+- formatting: reached the gate and failed only because this Markdown handoff used trailing spaces for hard line breaks; those trailing spaces are removed in this commit.
+
+Because every new commit intentionally causes the exact-head workflows to restart, CI/E2E/Native/CodeQL must be checked once more on the head containing this handoff update.
+
+## Documentation updated
+
+`README.md` and `docs/platforms.md` now document:
+
+- browser/PWA/Windows/macOS/Linux/Android/iOS/iPadOS/ChromeOS support;
+- runtime and form-factor detection;
+- safe-area/dynamic-viewport/touch behavior;
+- Android/iOS build entry points;
+- platform-specific native security capabilities;
+- real native CI compilation coverage;
+- store-signing boundaries and troubleshooting.
 
 ## Commits created in this continuation
+
+Core cross-platform work:
 
 - `27277cdf` — feat(platform): add shared runtime platform detection
 - `8ba06f59` — feat(platform): add mobile safe-area and touch adaptations
@@ -193,16 +200,30 @@ Updated `docs/platforms.md` with:
 - `ec10295b` — fix(release): validate platform runtime wiring accurately
 - `e65dd9e9` — docs(handoff): record complete cross-platform hardening
 - `b6034278` — fix(platform): preserve browser refresh and safe-area spacing
+- `2cc69103` — docs(handoff): record final mobile UX refinement
 
-This handoff update is committed separately after the implementation commits above.
+Strict validation repairs:
+
+- `e6bf7105` — fix(types): mark error boundary overrides explicitly
+- `5949691c` — fix(types): preserve course narrowing in action callbacks
+- `80154d95` — test(types): guard encrypted restore file input
+- `ed7777ce` — test(types): type throwing boundary fixture as never
+- `2e2d83f8` — test(types): dispatch native dialog cancel event explicitly
+- `051bf5a4` — test(types): use scoped dialog queries correctly
+- `d00356a3` — fix(lint): document ignored formatting scan paths
+- `81e9b0b8` — fix(lint): document ignored secret scan paths
+- `ce0863c3` — fix(lint): simplify platform target marker checks
+- `e8c3d1cf` — fix(export): sanitize control characters without control regex
+- `3f8ffbdb` — test(export): assert control safety without control regex
+- `2746b00d` — test(lint): use explicit resolved promises in data mocks
 
 ## Pull-request verification
 
-PR #21 was opened from `feature/full-cross-platform-support` into `main` after the implementation/release-gate/docs pass.
+PR #21 is open from `feature/full-cross-platform-support` into `main`.
 
-The connected repository is the authoritative execution environment for this continuation because the local shell still cannot resolve `github.com`, so a clean local clone and registry-backed dependency installation cannot be performed here. No local passing result is fabricated.
+The connected GitHub repository is the authoritative execution environment for this continuation because the local shell cannot resolve `github.com`; no local passing result is fabricated.
 
-The PR is currently conflict-free and GitHub reports it mergeable, but no CI/status contexts have been surfaced for the connector-authored head commits. Missing status evidence is not treated as a passing build.
+GitHub Actions now surfaces CI, E2E, Native, and CodeQL runs for the branch. Superseded runs are cancelled by workflow concurrency when a newer commit is pushed; cancellation of an older head is not treated as failure or success evidence for the new head.
 
 ## Exact validation commands
 
@@ -216,7 +237,7 @@ npm run test:e2e
 npm audit --audit-level=high
 ```
 
-Desktop source/runtime check:
+Desktop compile verification:
 
 ```bash
 npm run native:icons
@@ -253,15 +274,15 @@ npm run ios:build
 
 ## Release/publication boundaries still external
 
-These are not source-code blockers, but they require real platform/store environments and credentials and therefore must not be falsely declared complete from repository source inspection alone:
+These require real platform/store environments and credentials and must not be falsely declared complete from source inspection alone:
 
 1. Windows installer smoke testing on a real Windows host.
-2. macOS bundle signing/notarization and smoke testing on a real macOS host.
+2. macOS signing/notarization and smoke testing on a real macOS host.
 3. Linux bundle smoke testing on intended distributions/package formats.
-4. Android APK/AAB device or emulator smoke testing and production signing.
+4. Android device/emulator smoke testing and production APK/AAB signing.
 5. iOS/iPadOS simulator/device smoke testing plus Apple signing/provisioning for distribution.
 6. Browser-to-native and native-to-native backup/CSV interoperability smoke tests on real built applications.
-7. App-store listing, signing, privacy, and publication steps for stores that are actually used.
+7. Store listing, signing, privacy, and publication steps for stores actually used.
 
 Android keystores, Apple certificates, provisioning credentials, notarization credentials, and store secrets must remain outside Git.
 
@@ -269,29 +290,11 @@ Android keystores, Apple certificates, provisioning credentials, notarization cr
 
 Application storage schema remains version `1`.
 
-The cross-platform work in this continuation changes runtime detection, layout adaptation, native permission declarations, CI verification, and documentation. It does not change the grade data model, JSON backup format, encrypted-backup format, or CSV portability format, so no user-data migration is required.
-
-## Existing major hardening retained from the previous handoff
-
-The 2026-08-23 handoff and its complete historical detail remain available in Git history at blob/commit history preceding this update. The current branch retains its work, including:
-
-- local persistence failure handling and visible English/Hindi warnings;
-- recovery-record safety;
-- guarded local-data clearing;
-- accessible modal heading/close semantics;
-- `aria-current` navigation state;
-- stale what-if route recovery;
-- cross-platform filename sanitation;
-- screenshot provenance and SHA-256 manifests;
-- PWA archive checksum publication;
-- read-only verification/write-only release publication separation;
-- non-persisted checkout credentials;
-- CI/E2E/Native/CodeQL manual dispatch and concurrency controls;
-- version synchronization, release-tag checks, CodeQL, dependency audit, Playwright, coverage, documentation-link checks, bundle budgets, and release-readiness validation.
+This continuation changes runtime detection, layout adaptation, native permission declarations, CI verification, tests, utility hardening, and documentation. It does not change the grade data model, JSON backup format, encrypted-backup format, or CSV portability format, so no user-data migration is required.
 
 ## Next exact work
 
-1. Inspect CI/E2E/Native/CodeQL results for the newest PR #21 head SHA if GitHub surfaces them.
-2. Fix every actionable workflow failure on the feature branch instead of weakening the checks.
-3. Merge PR #21 only when the repository reports it mergeable and validation evidence is acceptable for the current environment.
-4. Keep real device/store signing and final distribution evidence as explicit release tasks rather than source-level claims.
+1. Inspect CI/E2E/Native/CodeQL on the newest PR #21 head.
+2. Fix every actionable failure rather than weakening a gate.
+3. Merge PR #21 only after the exact-head evidence is acceptable and GitHub reports it mergeable.
+4. Keep real-device/store signing and final distribution evidence as explicit release tasks.
