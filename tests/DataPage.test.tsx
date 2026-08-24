@@ -125,7 +125,9 @@ describe("DataPage data safety", () => {
       'input[type="file"][accept=".json,application/json"]',
     );
     expect(encryptedInputs).toHaveLength(2);
-    fireEvent.change(encryptedInputs[1], {
+    const encryptedInput = encryptedInputs.item(1);
+    expect(encryptedInput).not.toBeNull();
+    fireEvent.change(encryptedInput!, {
       target: { files: [fileWithText("encrypted-backup.json", "ciphertext")] },
     });
     await waitFor(() =>
