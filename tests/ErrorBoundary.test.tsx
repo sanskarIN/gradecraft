@@ -1,3 +1,27 @@
-import { render,screen } from "@testing-library/react";import { afterEach,describe,expect,it,vi } from "vitest";import { ErrorBoundary } from "../src/components/ErrorBoundary";
-function Boom(){throw new Error("boom");}
-describe("ErrorBoundary",()=>{afterEach(()=>{vi.restoreAllMocks();});it("shows a user-safe recovery state for uncaught render errors",()=>{vi.spyOn(console,"error").mockImplementation(()=>undefined);render(<ErrorBoundary><Boom/></ErrorBoundary>);expect(screen.getByRole("heading",{name:"GradeCraft hit an unexpected error"})).toBeInTheDocument();expect(screen.getByRole("button",{name:"Reload GradeCraft"})).toBeInTheDocument();expect(screen.queryByText("boom")).not.toBeInTheDocument();});});
+import { render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ErrorBoundary } from "../src/components/ErrorBoundary";
+
+function Boom(): never {
+  throw new Error("boom");
+}
+
+describe("ErrorBoundary", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("shows a user-safe recovery state for uncaught render errors", () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    render(
+      <ErrorBoundary>
+        <Boom />
+      </ErrorBoundary>,
+    );
+    expect(
+      screen.getByRole("heading", { name: "GradeCraft hit an unexpected error" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reload GradeCraft" })).toBeInTheDocument();
+    expect(screen.queryByText("boom")).not.toBeInTheDocument();
+  });
+});
