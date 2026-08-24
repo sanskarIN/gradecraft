@@ -1,12 +1,16 @@
 import { isTauri } from "@tauri-apps/api/core";
 
 const WINDOWS_RESERVED_NAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
+const RESERVED_FILENAME_PUNCTUATION = /[<>:"/\\|?*]/g;
 const MAX_FILENAME_LENGTH = 180;
 
+function replaceControlCharacters(value: string): string {
+  return Array.from(value, (character) => (character.charCodeAt(0) <= 0x1f ? "_" : character)).join("");
+}
+
 export function sanitizeDownloadFilename(filename: string): string {
-  const cleaned = filename
-    .trim()
-    .replace(/[\u0000-\u001f<>:"/\\|?*]/g, "_")
+  const cleaned = replaceControlCharacters(filename.trim())
+    .replace(RESERVED_FILENAME_PUNCTUATION, "_")
     .replace(/[. ]+$/g, "");
   const withFallback = cleaned || "gradecraft-export.txt";
   const withSafeDeviceName = WINDOWS_RESERVED_NAME.test(withFallback) ? `_${withFallback}` : withFallback;

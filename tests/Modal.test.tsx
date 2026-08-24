@@ -32,7 +32,7 @@ describe("Modal", () => {
     const dialog = container.querySelector("dialog");
     expect(dialog).not.toBeNull();
 
-    fireEvent.cancel(dialog!);
+    fireEvent(dialog!, new Event("cancel", { bubbles: true, cancelable: true }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });

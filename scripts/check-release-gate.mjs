@@ -15,6 +15,8 @@ const requiredFiles = [
   ".editorconfig",
   ".gitattributes",
   ".env.example",
+  "index.html",
+  "src/main.tsx",
   "docs/architecture.md",
   "docs/setup.md",
   "docs/development.md",
@@ -42,6 +44,9 @@ const requiredFiles = [
   "public/sw.js",
   "public/icons/icon.svg",
   "e2e/publication-screenshots.spec.ts",
+  "src/platform/runtime.ts",
+  "src/platform/platform.css",
+  "tests/platform.test.ts",
   "src-tauri/.gitignore",
   "src-tauri/build.rs",
   "src-tauri/Cargo.toml",
@@ -49,6 +54,8 @@ const requiredFiles = [
   "src-tauri/src/main.rs",
   "src-tauri/src/lib.rs",
   "src-tauri/capabilities/default.json",
+  "src-tauri/capabilities/desktop-export.json",
+  "src-tauri/capabilities/mobile-export.json",
   "scripts/check-version-sync.mjs",
 ];
 
@@ -105,6 +112,15 @@ const requireCheckoutIsolation = (workflow, label) => {
     failures.push(`${label} workflow must disable persisted credentials for every checkout.`);
   }
 };
+const hasExactPlatformSet = (actual, expected) =>
+  Array.isArray(actual) && actual.length === expected.length && expected.every((platform) => actual.includes(platform));
+const requirePermissions = (capability, label, permissions) => {
+  for (const permission of permissions) {
+    if (!capability.permissions?.includes(permission)) {
+      failures.push(`${label} capability is missing required permission: ${permission}`);
+    }
+  }
+};
 
 const readme = read("README.md");
 for (const marker of [
@@ -121,6 +137,29 @@ for (const marker of [
   "iOS",
 ]) {
   if (!readme.includes(marker)) failures.push(`README.md is missing required marker: ${marker}`);
+}
+
+const indexHtml = read("index.html");
+for (const marker of ["viewport-fit=cover", "mobile-web-app-capable", "apple-mobile-web-app-capable"]) {
+  if (!indexHtml.includes(marker)) failures.push(`index.html is missing mobile install marker: ${marker}`);
+}
+
+const mainEntry = read("src/main.tsx");
+for (const marker of ["initializePlatformEnvironment", 'import "./platform/platform.css"']) {
+  if (!mainEntry.includes(marker)) failures.push(`Application startup is missing platform wiring: ${marker}`);
+}
+
+const platformRuntime = read("src/platform/runtime.ts");
+for (const marker of ["isTauri", "root.dataset.platform", "root.dataset.runtime", "root.dataset.formFactor"]) {
+  if (!platformRuntime.includes(marker)) failures.push(`Platform runtime is missing required marker: ${marker}`);
+}
+for (const target of ["windows", "macos", "linux", "android", "ios", "web"]) {
+  if (!platformRuntime.includes(`"${target}"`)) failures.push(`Platform runtime is missing target: ${target}`);
+}
+
+const platformCss = read("src/platform/platform.css");
+for (const marker of ["safe-area-inset-top", "safe-area-inset-bottom", "100dvh", "pointer: coarse"]) {
+  if (!platformCss.includes(marker)) failures.push(`Platform CSS is missing required adaptation: ${marker}`);
 }
 
 const requireWorkflowControls = (workflow, label, { manual = false } = {}) => {
@@ -170,8 +209,16 @@ requireWorkflowControls(e2e, "E2E", { manual: true });
 requireCheckoutIsolation(e2e, "E2E");
 
 const nativeCi = read(".github/workflows/native.yml");
-for (const command of ["npm run native:check", "npm run android:init", "npm run ios:init"]) {
-  if (!nativeCi.includes(command)) failures.push(`Native CI is missing platform gate: ${command}`);
+for (const command of [
+  "npm run native:check",
+  "npm run native:build -- --debug --no-bundle",
+  "npm run android:init",
+  "npm run android:build -- --debug --apk --target x86_64 --ci",
+  "npm run ios:init",
+  "npm run ios:build -- --debug --target aarch64-sim --no-sign",
+  "gradecraft-android-debug-${{ github.sha }}",
+]) {
+  if (!nativeCi.includes(command)) failures.push(`Native CI is missing platform build gate: ${command}`);
 }
 requireWorkflowControls(nativeCi, "Native", { manual: true });
 requireCheckoutIsolation(nativeCi, "Native");
@@ -229,12 +276,30 @@ if (tauriConfig.bundle?.active !== true || tauriConfig.bundle?.targets !== "all"
 if (tauriConfig.build?.frontendDist !== "../dist") {
   failures.push("Tauri frontendDist must consume the verified shared dist/ frontend.");
 }
+if ((tauriConfig.bundle?.android?.minSdkVersion ?? 0) < 24) {
+  failures.push("Android minSdkVersion must remain compatible with the supported Tauri baseline (24 or newer).");
+}
+if (!tauriConfig.bundle?.iOS?.minimumSystemVersion) {
+  failures.push("Tauri iOS minimum system version must be explicitly configured.");
+}
 
-const capability = JSON.parse(read("src-tauri/capabilities/default.json"));
-for (const permission of ["core:default", "dialog:default", "fs:write-files"]) {
-  if (!capability.permissions?.includes(permission)) {
-    failures.push(`Native capability is missing required permission: ${permission}`);
-  }
+const coreCapability = JSON.parse(read("src-tauri/capabilities/default.json"));
+const desktopCapability = JSON.parse(read("src-tauri/capabilities/desktop-export.json"));
+const mobileCapability = JSON.parse(read("src-tauri/capabilities/mobile-export.json"));
+requirePermissions(coreCapability, "Shared core", ["core:default"]);
+requirePermissions(desktopCapability, "Desktop export", ["dialog:default", "fs:write-files"]);
+requirePermissions(mobileCapability, "Mobile export", ["dialog:default", "fs:write-files"]);
+if (!hasExactPlatformSet(desktopCapability.platforms, ["linux", "macOS", "windows"])) {
+  failures.push("Desktop export capability must be limited to linux, macOS, and windows.");
+}
+if (!hasExactPlatformSet(mobileCapability.platforms, ["iOS", "android"])) {
+  failures.push("Mobile export capability must be limited to iOS and android.");
+}
+if (desktopCapability.$schema !== "../gen/schemas/desktop-schema.json") {
+  failures.push("Desktop export capability must use the generated desktop schema.");
+}
+if (mobileCapability.$schema !== "../gen/schemas/mobile-schema.json") {
+  failures.push("Mobile export capability must use the generated mobile schema.");
 }
 
 const cargo = read("src-tauri/Cargo.toml");

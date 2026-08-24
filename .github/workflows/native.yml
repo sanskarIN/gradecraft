@@ -29,14 +29,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  desktop-core:
-    name: Desktop core (${{ matrix.os }})
+  desktop-build:
+    name: Desktop build (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
         with:
@@ -54,11 +54,13 @@ jobs:
       - run: npm install --ignore-scripts
       - run: npm run native:icons
       - run: npm run native:check
+      - name: Compile native desktop application
+        run: npm run native:build -- --debug --no-bundle
 
-  android-scaffold:
-    name: Android scaffold
+  android-build:
+    name: Android debug APK (x86_64)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       CI: "true"
     steps:
@@ -79,11 +81,20 @@ jobs:
         run: echo "NDK_HOME=$(find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)" >> "$GITHUB_ENV"
       - run: npm install --ignore-scripts
       - run: npm run android:init -- --ci
+      - name: Compile Android debug APK
+        run: npm run android:build -- --debug --apk --target x86_64 --ci
+      - name: Upload Android smoke-build APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradecraft-android-debug-${{ github.sha }}
+          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 7
 
-  ios-scaffold:
-    name: iOS scaffold
+  ios-build:
+    name: iOS simulator build (Apple Silicon)
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       CI: "true"
     steps:
@@ -97,3 +108,5 @@ jobs:
         run: rustup update stable
       - run: npm install --ignore-scripts
       - run: npm run ios:init -- --ci
+      - name: Compile unsigned iOS simulator application
+        run: npm run ios:build -- --debug --target aarch64-sim --no-sign
