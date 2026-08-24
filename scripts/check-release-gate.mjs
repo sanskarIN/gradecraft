@@ -154,7 +154,7 @@ for (const marker of ["isTauri", "root.dataset.platform", "root.dataset.runtime"
   if (!platformRuntime.includes(marker)) failures.push(`Platform runtime is missing required marker: ${marker}`);
 }
 for (const target of ["windows", "macos", "linux", "android", "ios", "web"]) {
-  if (!platformRuntime.includes(`\"${target}\"`)) failures.push(`Platform runtime is missing target: ${target}`);
+  if (!platformRuntime.includes(`"${target}"`)) failures.push(`Platform runtime is missing target: ${target}`);
 }
 
 const platformCss = read("src/platform/platform.css");
