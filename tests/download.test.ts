@@ -4,7 +4,8 @@ import { sanitizeDownloadFilename } from "../src/utils/download";
 describe("download filename safety", () => {
   it("replaces filesystem separators, control characters, and reserved punctuation", () => {
     const filename = sanitizeDownloadFilename('Math/Algebra: Fall?*\u0001-grades.csv');
-    expect(filename).not.toMatch(/[\u0000-\u001f<>:"/\\|?*]/);
+    expect(Array.from(filename).every((character) => character.charCodeAt(0) > 0x1f)).toBe(true);
+    expect(filename).not.toMatch(/[<>:"/\\|?*]/);
     expect(filename).toMatch(/\.csv$/);
   });
 
