@@ -13,7 +13,30 @@ GradeCraft uses one React/TypeScript application for every target. The browser b
 | Android | Tauri + Android System WebView | Windows, macOS, or Linux with Android tooling | APK and AAB |
 | iOS/iPadOS | Tauri + WKWebView | macOS with Xcode | Xcode/iOS application build suitable for signing and distribution |
 
-Native packages and the PWA share the same domain rules, state model, localization, accessibility behavior, storage schema, backup format, CSV format, and tests.
+Native packages and the PWA share the same domain rules, state model, localization, accessibility behavior, storage schema, backup format, CSV format, UI, and tests.
+
+## Runtime and form-factor adaptation
+
+`src/platform/runtime.ts` detects the active target and runtime without creating separate product implementations. At startup it publishes the following root data attributes:
+
+- `data-platform`: `web`, `windows`, `macos`, `linux`, `android`, `ios`, or `unknown`;
+- `data-runtime`: `browser`, `pwa`, or `native`;
+- `data-form-factor`: `phone`, `tablet`, or `desktop`;
+- `data-touch`: whether touch/coarse-pointer input is available;
+- `data-standalone`: whether the app is running as a PWA/native standalone application.
+
+The detector also handles iPadOS browsers that identify themselves as `MacIntel` while exposing multiple touch points.
+
+`src/platform/platform.css` is layered after the shared stylesheet and adds platform-safe behavior without forking screens:
+
+- CSS safe-area insets for display cutouts, rounded corners, status areas, and gesture regions;
+- `100dvh` sizing for mobile browser and installed-app viewport changes;
+- touch-friendly minimum interactive target sizes on coarse pointers;
+- 16px form controls on phones to prevent unwanted mobile zoom behavior;
+- safe padding for sticky navigation, dialogs, onboarding, content, and the footer;
+- compact landscape handling on short phone screens.
+
+`index.html` uses `viewport-fit=cover` and standalone PWA metadata so those safe-area rules can work when the app is installed on supported mobile browsers.
 
 ## Common prerequisites
 
@@ -171,6 +194,12 @@ Build an Android App Bundle for Google Play distribution:
 npm run android:build -- --aab
 ```
 
+For a fast local/CI compilation check of one emulator architecture:
+
+```bash
+npm run android:build -- --debug --apk --target x86_64 --ci
+```
+
 Release publication requires an Android signing key and store configuration. Signing secrets must never be committed to this repository.
 
 ## iOS and iPadOS prerequisites
@@ -215,6 +244,12 @@ Create the iOS release build:
 npm run ios:build
 ```
 
+For an unsigned Apple-Silicon simulator compilation check suitable for CI:
+
+```bash
+npm run ios:build -- --debug --target aarch64-sim --no-sign
+```
+
 Final device/App Store packaging is governed by Apple's signing, provisioning, entitlements, and App Store requirements. Do not put signing certificates or provisioning secrets in Git.
 
 ## Application icons
@@ -237,7 +272,13 @@ The native development, initialization, and build scripts already run this comma
 
 Browser builds continue to use a standard browser download. Native builds use Tauri's system save dialog and filesystem plugin. This matters for Android and iOS because their native file selectors can return platform-specific URIs rather than ordinary desktop paths.
 
-The capability in `src-tauri/capabilities/default.json` is local to the `main` window and grants only core defaults, native dialog access, and file-write commands needed for user-requested exports. GradeCraft does not expose remote web content to these native capabilities.
+Native permissions are split by target under `src-tauri/capabilities/`:
+
+- `default.json` grants only the shared `core:default` capability to the local `main` window;
+- `desktop-export.json` uses the desktop schema and grants dialog/file-write permissions only on Linux, macOS, and Windows;
+- `mobile-export.json` uses the mobile schema and grants the same export permissions only on iOS and Android.
+
+GradeCraft does not expose remote web content to these native capabilities. The split prevents a desktop-only capability schema from being treated as the mobile permission definition while retaining one shared export implementation.
 
 ## Local data and privacy
 
@@ -247,13 +288,27 @@ Before uninstalling a native application or clearing its application data, expor
 
 ## Continuous integration
 
-`.github/workflows/native.yml` validates:
+`.github/workflows/native.yml` validates actual native compilation rather than only source generation:
 
-- the Rust/Tauri core on Ubuntu, Windows, and macOS;
-- Android project generation on an Android-capable Linux runner;
-- iOS project generation on macOS.
+- Ubuntu, Windows, and macOS each run the Rust/Tauri check and compile a debug desktop application without producing a signed installer;
+- Linux CI initializes Android and builds an x86_64 debug APK, then uploads that APK as short-lived smoke-build evidence;
+- macOS CI initializes iOS and compiles an unsigned `aarch64-sim` simulator application.
+
+The native workflow is path-filtered, manually dispatchable for exact-ref verification, and uses concurrency cancellation so superseded runs do not obscure the newest result.
 
 Store signing is deliberately outside pull-request CI. Release credentials must be supplied only by the trusted release environment.
+
+## Platform regression gates
+
+`npm run release:gate` verifies that the supported-platform implementation cannot silently disappear. It requires:
+
+- the runtime detector, platform stylesheet, and their unit tests;
+- mobile install/safe-area metadata in `index.html`;
+- all three least-privilege native capability files and their correct platform sets;
+- real desktop, Android, and iOS compile commands in Native CI;
+- the existing web/PWA release and security gates.
+
+`tests/platform.test.ts` covers Android native, iPadOS PWA, Windows native, generic web fallback, and root platform-attribute publication.
 
 ## Platform-specific troubleshooting
 
@@ -287,15 +342,22 @@ Recheck the Linux system dependencies listed above. The native shell needs WebKi
 
 Confirm that the app was launched through a Tauri native command (`native:dev`, `android:dev`, or `ios:dev`) rather than through `npm run dev`, which intentionally exercises browser behavior.
 
+### Content sits under a display cutout or gesture area
+
+Confirm that the page still includes `viewport-fit=cover` and that `src/platform/platform.css` loads after `src/styles.css`. The platform stylesheet owns the `safe-area-inset-*` padding rules.
+
 ## Source layout
 
 ```text
 src/                         shared React/TypeScript application
+src/platform/runtime.ts      runtime/target/form-factor detection
+src/platform/platform.css    cross-platform viewport/touch/safe-area adaptations
 src-tauri/                   native Tauri/Rust shell
 src-tauri/src/lib.rs         shared desktop/mobile Tauri runtime
 src-tauri/src/main.rs        desktop executable entry point
 src-tauri/tauri.conf.json    target and bundle configuration
-src-tauri/capabilities/      native security permissions
+src-tauri/capabilities/      shared, desktop, and mobile security permissions
 public/                      web/PWA resources and canonical app icon
+tests/platform.test.ts       platform detection regression tests
 docs/platforms.md            this platform guide
 ```
