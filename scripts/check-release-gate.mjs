@@ -15,6 +15,8 @@ const requiredFiles = [
   ".editorconfig",
   ".gitattributes",
   ".env.example",
+  "index.html",
+  "src/main.tsx",
   "docs/architecture.md",
   "docs/setup.md",
   "docs/development.md",
@@ -142,9 +144,13 @@ for (const marker of ["viewport-fit=cover", "mobile-web-app-capable", "apple-mob
   if (!indexHtml.includes(marker)) failures.push(`index.html is missing mobile install marker: ${marker}`);
 }
 
+const mainEntry = read("src/main.tsx");
+for (const marker of ["initializePlatformEnvironment", 'import "./platform/platform.css"']) {
+  if (!mainEntry.includes(marker)) failures.push(`Application startup is missing platform wiring: ${marker}`);
+}
+
 const platformRuntime = read("src/platform/runtime.ts");
-for (const marker of ["isTauri", "aarch64", "data-platform", "data-runtime"]) {
-  if (marker === "aarch64") continue;
+for (const marker of ["isTauri", "root.dataset.platform", "root.dataset.runtime", "root.dataset.formFactor"]) {
   if (!platformRuntime.includes(marker)) failures.push(`Platform runtime is missing required marker: ${marker}`);
 }
 for (const target of ["windows", "macos", "linux", "android", "ios", "web"]) {
@@ -152,8 +158,7 @@ for (const target of ["windows", "macos", "linux", "android", "ios", "web"]) {
 }
 
 const platformCss = read("src/platform/platform.css");
-for (const marker of ["safe-area-inset-top", "safe-area-inset-bottom", "100dvh", "pointer: coarse", "viewport"]) {
-  if (marker === "viewport") continue;
+for (const marker of ["safe-area-inset-top", "safe-area-inset-bottom", "100dvh", "pointer: coarse"]) {
   if (!platformCss.includes(marker)) failures.push(`Platform CSS is missing required adaptation: ${marker}`);
 }
 
@@ -272,7 +277,7 @@ if (tauriConfig.build?.frontendDist !== "../dist") {
   failures.push("Tauri frontendDist must consume the verified shared dist/ frontend.");
 }
 if ((tauriConfig.bundle?.android?.minSdkVersion ?? 0) < 24) {
-  failures.push("Android minSdkVersion must remain compatible with the supported Tauri baseline (24 or newer).\n");
+  failures.push("Android minSdkVersion must remain compatible with the supported Tauri baseline (24 or newer).");
 }
 if (!tauriConfig.bundle?.iOS?.minimumSystemVersion) {
   failures.push("Tauri iOS minimum system version must be explicitly configured.");
