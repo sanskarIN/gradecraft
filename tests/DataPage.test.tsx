@@ -2,13 +2,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../src/data/encryptedBackup", () => ({
-  createEncryptedBackup: vi.fn(async () => '{"format":"gradecraft-encrypted-backup"}'),
+  createEncryptedBackup: vi.fn(() => Promise.resolve('{"format":"gradecraft-encrypted-backup"}')),
   parseEncryptedBackup: vi.fn(),
   encryptedBackupPolicy: { minimumPassphraseLength: 8, iterations: 210000 },
 }));
 
 vi.mock("../src/utils/download", () => ({
-  downloadText: vi.fn(async () => true),
+  downloadText: vi.fn(() => Promise.resolve(true)),
 }));
 
 import { createBackup } from "../src/data/backup";
@@ -20,7 +20,7 @@ import { downloadText } from "../src/utils/download";
 
 function fileWithText(name: string, content: string): File {
   const file = new File(["fixture"], name, { type: "application/json" });
-  Object.defineProperty(file, "text", { value: async () => content });
+  Object.defineProperty(file, "text", { value: () => Promise.resolve(content) });
   return file;
 }
 
@@ -126,8 +126,8 @@ describe("DataPage data safety", () => {
     );
     expect(encryptedInputs).toHaveLength(2);
     const encryptedInput = encryptedInputs.item(1);
-    expect(encryptedInput).not.toBeNull();
-    fireEvent.change(encryptedInput!, {
+    if (!encryptedInput) throw new Error("Expected encrypted backup input.");
+    fireEvent.change(encryptedInput, {
       target: { files: [fileWithText("encrypted-backup.json", "ciphertext")] },
     });
     await waitFor(() =>
