@@ -19,7 +19,7 @@ describe("SettingsPage", () => {
         <SettingsPage />
       </AppProvider>,
     );
-    fireEvent.change(screen.getByLabelText("Language"), { target: { value: "hi" } });
+    fireEvent.change(screen.getByLabelText(/Language/), { target: { value: "hi" } });
     expect(screen.getByRole("heading", { name: "सेटिंग्स" })).toBeInTheDocument();
     await waitFor(() => expect(document.documentElement.lang).toBe("hi"));
   });
