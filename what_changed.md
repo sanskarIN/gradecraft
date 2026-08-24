@@ -58,13 +58,14 @@ The platform layer now includes:
 
 - `env(safe-area-inset-*)` support for cutouts, rounded display corners, status regions, and gesture areas;
 - `100dvh` sizing for mobile browser and installed-app viewport changes;
-- safe topbar/content/footer/onboarding/dialog spacing;
+- additive safe-area spacing around the topbar, content, footer, onboarding, and dialogs;
 - touch-target minimum sizing for coarse-pointer devices;
 - 16px phone form controls to avoid unwanted mobile zoom behavior;
 - sticky installed-phone navigation behavior;
 - horizontal mobile navigation scrolling;
 - short landscape-phone layout adjustments;
-- safe-area-aware content width.
+- safe-area-aware content width;
+- overscroll suppression only for installed PWA/native runtimes, preserving normal browser pull-to-refresh behavior.
 
 `index.html` now includes `viewport-fit=cover`, standard mobile standalone metadata, and Apple mobile-web-app metadata so installed PWA/native-like mobile presentation can use the safe-area rules correctly.
 
@@ -190,6 +191,8 @@ Updated `docs/platforms.md` with:
 - `f23495d3` — docs(platforms): document verified cross-platform architecture
 - `a7341f13` — docs(platforms): cover mobile UX and native build verification
 - `ec10295b` — fix(release): validate platform runtime wiring accurately
+- `e65dd9e9` — docs(handoff): record complete cross-platform hardening
+- `b6034278` — fix(platform): preserve browser refresh and safe-area spacing
 
 This handoff update is committed separately after the implementation commits above.
 
@@ -199,7 +202,7 @@ PR #21 was opened from `feature/full-cross-platform-support` into `main` after t
 
 The connected repository is the authoritative execution environment for this continuation because the local shell still cannot resolve `github.com`, so a clean local clone and registry-backed dependency installation cannot be performed here. No local passing result is fabricated.
 
-The exact PR head must receive positive evidence from the applicable GitHub workflows before the branch is treated as fully verified.
+The PR is currently conflict-free and GitHub reports it mergeable, but no CI/status contexts have been surfaced for the connector-authored head commits. Missing status evidence is not treated as a passing build.
 
 ## Exact validation commands
 
@@ -288,8 +291,7 @@ The 2026-08-23 handoff and its complete historical detail remain available in Gi
 
 ## Next exact work
 
-1. Inspect CI/E2E/Native/CodeQL results for the newest PR #21 head SHA.
+1. Inspect CI/E2E/Native/CodeQL results for the newest PR #21 head SHA if GitHub surfaces them.
 2. Fix every actionable workflow failure on the feature branch instead of weakening the checks.
-3. Update this handoff with final workflow evidence if further fixes are required.
-4. Merge PR #21 only when the repository reports it mergeable and required validation is acceptable.
-5. Keep real device/store signing and final distribution evidence as explicit release tasks rather than source-level claims.
+3. Merge PR #21 only when the repository reports it mergeable and validation evidence is acceptable for the current environment.
+4. Keep real device/store signing and final distribution evidence as explicit release tasks rather than source-level claims.
