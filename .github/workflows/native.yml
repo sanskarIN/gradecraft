@@ -86,7 +86,7 @@ jobs:
       - name: Compile Android debug APK
         run: npm run android:build -- --debug --apk --target x86_64 --ci
       - name: Upload Android smoke-build APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gradecraft-android-debug-${{ github.sha }}
           path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
