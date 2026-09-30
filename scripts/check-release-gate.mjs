@@ -27,9 +27,11 @@ const requiredFiles = [
   "docs/accessibility.md",
   "docs/performance.md",
   "docs/platforms.md",
+  "docs/android-content-uri.md",
   "docs/adr/0001-client-only-pwa.md",
   "docs/adr/0007-package-version-source.md",
   "docs/adr/0008-tauri-cross-platform-shell.md",
+  "docs/adr/0009-native-webview-hardening.md",
   ".github/FUNDING.yml",
   ".github/workflows/ci.yml",
   ".github/workflows/e2e.yml",
@@ -53,6 +55,7 @@ const requiredFiles = [
   "src-tauri/tauri.conf.json",
   "src-tauri/src/main.rs",
   "src-tauri/src/lib.rs",
+  "src-tauri/src/android_export.rs",
   "src-tauri/capabilities/default.json",
   "src-tauri/capabilities/desktop-export.json",
   "src-tauri/capabilities/mobile-export.json",
@@ -219,6 +222,11 @@ for (const command of [
   "gradecraft-android-debug-${{ github.sha }}",
 ]) {
   if (!nativeCi.includes(command)) failures.push(`Native CI is missing platform build gate: ${command}`);
+  "npm run android:init",
+  "npm run android:build -- --debug --apk --target aarch64",
+  "npm run ios:init",
+]) {
+  if (!nativeCi.includes(command)) failures.push(`Native CI is missing platform gate: ${command}`);
 }
 requireWorkflowControls(nativeCi, "Native", { manual: true });
 requireCheckoutIsolation(nativeCi, "Native");
@@ -300,11 +308,47 @@ if (desktopCapability.$schema !== "../gen/schemas/desktop-schema.json") {
 }
 if (mobileCapability.$schema !== "../gen/schemas/mobile-schema.json") {
   failures.push("Mobile export capability must use the generated mobile schema.");
+const nativeSecurity = tauriConfig.app?.security;
+const nativeCsp = typeof nativeSecurity?.csp === "string" ? nativeSecurity.csp : "";
+if (!nativeCsp) failures.push("Tauri CSP must be enabled for packaged webviews.");
+for (const directive of [
+  "default-src 'self'",
+  "connect-src ipc: http://ipc.localhost",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-src 'none'",
+  "frame-ancestors 'none'",
+]) {
+  if (!nativeCsp.includes(directive)) failures.push(`Tauri CSP is missing required directive: ${directive}`);
+}
+if (/(^|[;\s])\*([;\s]|$)/.test(nativeCsp)) {
+  failures.push("Tauri CSP must not contain a wildcard source.");
+}
+if (nativeSecurity?.freezePrototype !== true) {
+  failures.push("Tauri must freeze Object.prototype for packaged custom-protocol pages.");
+}
+if (nativeSecurity?.dangerousDisableAssetCspModification === true) {
+  failures.push("Tauri asset CSP modification must remain enabled.");
+}
+
+const capability = JSON.parse(read("src-tauri/capabilities/default.json"));
+for (const permission of ["core:default", "dialog:default", "fs:write-files"]) {
+  if (!capability.permissions?.includes(permission)) {
+    failures.push(`Native capability is missing required permission: ${permission}`);
+  }
 }
 
 const cargo = read("src-tauri/Cargo.toml");
-for (const dependency of ["tauri-plugin-dialog", "tauri-plugin-fs"]) {
+for (const dependency of ["tauri-plugin-dialog", "tauri-plugin-fs", 'jni = "0.21"']) {
   if (!cargo.includes(dependency)) failures.push(`Native Cargo manifest is missing ${dependency}.`);
+}
+
+const androidExport = read("src-tauri/src/android_export.rs");
+for (const marker of ["getContentResolver", "openOutputStream", 'new_string("wt")']) {
+  if (!androidExport.includes(marker)) {
+    failures.push(`Android content-URI export adapter is missing required marker: ${marker}`);
+  }
 }
 
 if (failures.length) {

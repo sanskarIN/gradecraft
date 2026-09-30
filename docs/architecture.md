@@ -13,7 +13,8 @@ The React/TypeScript application is the product implementation for every target.
 5. **UI (`src/components`, `src/pages`)** — reusable components and route-level workflows.
 6. **Shared platform adapters (`src/utils`, startup code)** — small runtime-aware boundaries for behavior that differs between browsers and native WebViews, such as file exports and service-worker registration.
 7. **Web platform (`public/sw.js`, `public/manifest.webmanifest`, `index.html`)** — offline cache shell, PWA manifest integration, and browser security policy.
-8. **Native platform (`src-tauri`)** — Tauri/Rust entry points, application/bundle metadata, mobile project generation, native plugin registration, and capability permissions.
+8. **Native platform (`src-tauri`)** — Tauri/Rust entry points, application/bundle metadata, mobile project generation, native plugin registration, capability permissions, and packaged-WebView security configuration.
+8. **Native platform (`src-tauri`)** — Tauri/Rust entry points, application/bundle metadata, mobile project generation, native plugin registration, Android document-provider adaptation, and capability permissions.
 
 Dependency flow points inward: pages depend on components/state/domain/data as needed; pure domain logic does not depend on React or a specific platform shell. Native code does not reimplement grading or persistence rules.
 
@@ -21,11 +22,13 @@ Dependency flow points inward: pages depend on components/state/domain/data as n
 
 `src-tauri/src/lib.rs` is the shared Tauri entry point used by desktop and mobile targets. `src-tauri/src/main.rs` is the desktop executable entry point. `src-tauri/tauri.conf.json` points at the same Vite development server and `dist/` production frontend used by the PWA.
 
-Tauri is intentionally a thin shell. Native plugins are added only when browser behavior is insufficient. Current native integration is limited to system save dialogs and filesystem writes for user-requested exports.
+Tauri is intentionally a thin shell. Native plugins and native commands are added only when browser/WebView behavior is insufficient. Current native integration is limited to system save dialogs, filesystem writes for user-requested exports, and an Android-only document-provider writer for selected `content://` destinations.
 
-`src-tauri/capabilities/default.json` associates those plugin permissions only with the local `main` window. Remote web content is not granted native capabilities.
+`src-tauri/capabilities/default.json` associates plugin permissions only with the local `main` window. Remote web content is not granted native capabilities.
 
-See [`adr/0008-tauri-cross-platform-shell.md`](adr/0008-tauri-cross-platform-shell.md) and [`platforms.md`](platforms.md).
+Packaged Tauri windows enforce an explicit CSP that defaults application content to local sources, allows only the IPC connection endpoints required by Tauri, and blocks objects, frames, framing, wildcard sources, off-origin form targets, and mutable base URLs. Packaged custom-protocol pages also use Tauri's `freezePrototype` hardening. These settings are checked by the release gate rather than treated as optional documentation-only guidance.
+
+See [`adr/0008-tauri-cross-platform-shell.md`](adr/0008-tauri-cross-platform-shell.md), [`adr/0009-native-webview-hardening.md`](adr/0009-native-webview-hardening.md), and [`platforms.md`](platforms.md).
 
 ## Runtime-aware browser/native behavior
 
@@ -38,9 +41,11 @@ The PWA service worker is registered only in production on HTTP/HTTPS origins. A
 `src/utils/download.ts` is the shared export adapter:
 
 - browser/PWA targets create a `Blob` and use the normal browser download flow;
-- Tauri targets open the native save dialog and write to the selected platform path/URI through the filesystem plugin.
+- native targets open the operating system save dialog;
+- ordinary native paths are written through Tauri's filesystem plugin;
+- Android `content://` destinations are written by the Rust command in `src-tauri/src/android_export.rs` through Android's `ContentResolver` output stream.
 
-This keeps JSON backup, encrypted backup, and CSV formats identical across platforms while allowing Android/iOS to use their native document-provider URI models.
+The Android branch exists because document-provider URIs are not ordinary filesystem paths. It changes only the final write transport; JSON backup, encrypted backup, and CSV serialization remain identical across platforms.
 
 ## Persistence and compatibility
 
@@ -82,9 +87,10 @@ Only salt, IV, KDF/algorithm metadata, iteration count, and ciphertext are expor
 
 CSV, JSON backup files, encrypted backup envelopes, and Local Storage contents are untrusted. Parsers validate types/ranges before data is incorporated. No dynamic HTML injection is used; React escapes rendered strings by default.
 
-`index.html` applies a restrictive Content Security Policy and no-referrer policy. These controls reduce exposure but do not change the fundamental WebView/origin trust boundary: code executing with the application's privileges can access in-use local data that the runtime can access.
+`index.html` applies a restrictive Content Security Policy and no-referrer policy for browser/PWA delivery. Packaged native windows use the separate Tauri CSP/prototype-hardening policy described above because browser-page policy should not be assumed to cover the privileged native WebView boundary automatically. These controls reduce exposure but do not change the fundamental WebView/origin trust boundary: code executing with the application's privileges can access in-use local data that the runtime can access.
 
-Native plugin access is additionally constrained by Tauri capabilities. New native permissions require an explicit review because they expand what the local frontend can request from the operating system.
+Native plugin access is additionally constrained by Tauri capabilities. New native permissions require an explicit review because they expand what the local frontend can request from the operating system. `scripts/check-release-gate.mjs` protects the approved CSP and capability baseline from silent regression.
+Native plugin access is additionally constrained by Tauri capabilities. The Android content-URI writer is a registered local command that accepts only `content://` destinations and text already generated inside GradeCraft; it does not expose a general arbitrary-path native writer. New native permissions or commands require an explicit review because they expand what the local frontend can request from the operating system.
 
 The application-level error boundary provides a safe recovery UI, while structured logging records redacted/safe metadata instead of raw user data or parser/storage exception text.
 
@@ -118,6 +124,6 @@ See [`adr/0007-package-version-source.md`](adr/0007-package-version-source.md) f
 
 `npm run verify` composes static typing, linting, repository formatting, documentation-link checking, secret scanning, version synchronization, the release-readiness gate, unit/component/property coverage, the production build, and production bundle budgets. Playwright remains a separate browser gate because it starts the production preview server and exercises end-to-end journeys.
 
-`npm run native:check` validates the Rust/Tauri layer. `.github/workflows/native.yml` runs that native core check across Ubuntu, Windows, and macOS and also validates Android/iOS project generation on appropriate runners.
+`npm run native:check` validates the Rust/Tauri layer. `.github/workflows/native.yml` runs that native core check across Ubuntu, Windows, and macOS and also validates Android/iOS project generation on appropriate runners. The release gate requires the Android content-URI adapter and its Android-only JNI dependency so the provider-safe export path cannot disappear silently.
 
 The release process requires both the shared web quality evidence and relevant native platform evidence before a platform package is called release-ready.

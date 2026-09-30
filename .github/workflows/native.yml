@@ -52,13 +52,13 @@ jobs:
       - name: Select stable Rust
         run: rustup update stable
       - run: npm install --ignore-scripts
-      - run: npm run native:icons
       - run: npm run native:check
       - name: Compile native desktop application
         run: npm run native:build -- --debug --no-bundle
 
   android-build:
     name: Android debug APK (x86_64)
+    name: Android debug APK (aarch64)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -74,8 +74,10 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Select stable Rust
-        run: rustup update stable
+      - name: Select stable Rust and Android target
+        run: |
+          rustup update stable
+          rustup target add aarch64-linux-android
       - name: Select installed Android NDK
         shell: bash
         run: echo "NDK_HOME=$(find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)" >> "$GITHUB_ENV"
@@ -90,6 +92,7 @@ jobs:
           path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 7
+      - run: npm run android:build -- --debug --apk --target aarch64
 
   ios-build:
     name: iOS simulator build (Apple Silicon)
