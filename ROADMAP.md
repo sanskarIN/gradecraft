@@ -57,6 +57,7 @@
 - [x] CI coverage and Playwright diagnostic artifacts
 - [x] Release tag/package-version validation
 - [x] Tag releases gated by verification, dependency audit, and Chromium E2E
+- [x] Deterministic browser screenshot candidate capture with exact commit/tag evidence metadata
 - [x] Release-readiness evidence matrix and final release procedure
 - [x] Superseded CI/E2E/native runs cancel automatically per ref
 - [x] Manual CI/native dispatch available for release evidence collection
@@ -84,12 +85,15 @@
 
 ## Remaining publication evidence
 
-- [ ] Capture real screenshots from a positively verified production build.
+- [ ] Capture and promote real screenshots from a positively verified production build.
+  - Automated Playwright capture now produces exact-commit candidates and `EVIDENCE.txt`; this remains unchecked until a successful run is reviewed and accepted into `docs/screenshots/`.
 - [ ] Publish and verify a hosted demo URL if a public demo is desired.
 - [ ] Record positive clean-checkout/GitHub Actions evidence for the exact 2.0.12 release commit before tagging `v2.0.12`.
 - [ ] Smoke-test packaged native startup and export dialogs under the enforced CSP on each platform intended for publication.
 - [ ] Repeat screen-reader/dialog/chart/validation smoke testing in both English and Hindi on at least one real browser before publication.
 - [ ] Verify sanitized export defaults and successful JSON/CSV/encrypted-backup writes on each native platform intended for publication.
+- [ ] Record platform-specific build and smoke-test evidence for each native package that will be published.
+- [ ] Verify web/native JSON, encrypted-backup, and CSV interoperability on real target builds.
 
 These items require an actual runner/browser/deployment or target platform and are intentionally not replaced with generated screenshots, mock deployment links, or an assumption that missing status contexts mean success.
 

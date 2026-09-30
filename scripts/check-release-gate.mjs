@@ -25,6 +25,7 @@ const requiredFiles = [
   "docs/accessibility.md",
   "docs/performance.md",
   "docs/platforms.md",
+  "docs/android-content-uri.md",
   "docs/adr/0001-client-only-pwa.md",
   "docs/adr/0007-package-version-source.md",
   "docs/adr/0008-tauri-cross-platform-shell.md",
@@ -42,12 +43,14 @@ const requiredFiles = [
   "public/manifest.webmanifest",
   "public/sw.js",
   "public/icons/icon.svg",
+  "e2e/publication-screenshots.spec.ts",
   "src-tauri/.gitignore",
   "src-tauri/build.rs",
   "src-tauri/Cargo.toml",
   "src-tauri/tauri.conf.json",
   "src-tauri/src/main.rs",
   "src-tauri/src/lib.rs",
+  "src-tauri/src/android_export.rs",
   "src-tauri/capabilities/default.json",
   "scripts/check-version-sync.mjs",
 ];
@@ -96,6 +99,16 @@ for (const script of requiredScripts) {
 }
 
 const read = (file) => readFileSync(file, "utf8");
+const countOccurrences = (text, marker) => text.split(marker).length - 1;
+const requireCheckoutIsolation = (workflow, label) => {
+  const checkouts = countOccurrences(workflow, "actions/checkout@v7");
+  const isolated = countOccurrences(workflow, "persist-credentials: false");
+  if (checkouts === 0) failures.push(`${label} workflow is missing actions/checkout.`);
+  if (isolated !== checkouts) {
+    failures.push(`${label} workflow must disable persisted credentials for every checkout.`);
+  }
+};
+
 const readme = read("README.md");
 for (const marker of [
   "Made by the Sanskar",
@@ -113,6 +126,15 @@ for (const marker of [
   if (!readme.includes(marker)) failures.push(`README.md is missing required marker: ${marker}`);
 }
 
+const requireWorkflowControls = (workflow, label, { manual = false } = {}) => {
+  for (const marker of ["concurrency:", "cancel-in-progress: true"]) {
+    if (!workflow.includes(marker)) failures.push(`${label} workflow is missing concurrency control: ${marker}`);
+  }
+  if (manual && !workflow.includes("workflow_dispatch:")) {
+    failures.push(`${label} workflow must support workflow_dispatch for exact-ref verification.`);
+  }
+};
+
 const ci = read(".github/workflows/ci.yml");
 for (const command of [
   "npm run typecheck",
@@ -129,11 +151,45 @@ for (const command of [
 ]) {
   if (!ci.includes(command)) failures.push(`CI is missing quality gate: ${command}`);
 }
+requireWorkflowControls(ci, "CI", { manual: true });
+requireCheckoutIsolation(ci, "CI");
+
+const e2e = read(".github/workflows/e2e.yml");
+for (const marker of [
+  "npm run test:e2e",
+  "publication-screenshots-${{ github.sha }}",
+  "test-results/publication-screenshots/",
+  "EVIDENCE.txt",
+  "repository=$GITHUB_REPOSITORY",
+  "ref=$GITHUB_REF",
+  "event=$GITHUB_EVENT_NAME",
+  "SHA256SUMS.txt",
+  "sha256sum",
+  "test -s SHA256SUMS.txt",
+]) {
+  if (!e2e.includes(marker)) failures.push(`E2E workflow is missing release evidence marker: ${marker}`);
+}
+requireWorkflowControls(e2e, "E2E", { manual: true });
+requireCheckoutIsolation(e2e, "E2E");
 
 const nativeCi = read(".github/workflows/native.yml");
-for (const command of ["npm run native:check", "npm run android:init", "npm run ios:init"]) {
+for (const command of [
+  "npm run native:check",
+  "npm run android:init",
+  "npm run android:build -- --debug --apk --target aarch64",
+  "npm run ios:init",
+]) {
   if (!nativeCi.includes(command)) failures.push(`Native CI is missing platform gate: ${command}`);
 }
+requireWorkflowControls(nativeCi, "Native", { manual: true });
+requireCheckoutIsolation(nativeCi, "Native");
+
+const codeql = read(".github/workflows/codeql.yml");
+for (const marker of ["github/codeql-action/init", "github/codeql-action/analyze"]) {
+  if (!codeql.includes(marker)) failures.push(`CodeQL workflow is missing scan marker: ${marker}`);
+}
+requireWorkflowControls(codeql, "CodeQL", { manual: true });
+requireCheckoutIsolation(codeql, "CodeQL");
 
 const release = read(".github/workflows/release.yml");
 for (const command of [
@@ -142,12 +198,34 @@ for (const command of [
   "npm audit --audit-level=high",
   "npx playwright install --with-deps chromium",
   "npm run test:e2e",
+  "sha256sum gradecraft-pwa.zip > gradecraft-pwa.zip.sha256",
 ]) {
   if (!release.includes(command)) failures.push(`Release workflow is missing gate: ${command}`);
+}
+for (const marker of [
+  "release-screenshots-${{ github.ref_name }}-${{ github.sha }}",
+  "test-results/publication-screenshots/",
+  "EVIDENCE.txt",
+  "repository=$GITHUB_REPOSITORY",
+  "ref=$GITHUB_REF",
+  "event=$GITHUB_EVENT_NAME",
+  "tag=$GITHUB_REF_NAME",
+  "SHA256SUMS.txt",
+  "sha256sum",
+  "test -s SHA256SUMS.txt",
+  "gradecraft-pwa.zip.sha256",
+  "release-pwa-${{ github.ref_name }}-${{ github.sha }}",
+  "actions/download-artifact@v4",
+  "needs: verify",
+  "permissions:\n  contents: read",
+  "permissions:\n      contents: write",
+]) {
+  if (!release.includes(marker)) failures.push(`Release workflow is missing hardened publication marker: ${marker}`);
 }
 if (!release.includes('GRADECRAFT_E2E_PREBUILT: "1"')) {
   failures.push("Release E2E must exercise the already verified production build.");
 }
+requireCheckoutIsolation(release, "Release");
 
 const tauriConfig = JSON.parse(read("src-tauri/tauri.conf.json"));
 if (tauriConfig.identifier !== "in.sanskar.gradecraft") {
@@ -192,8 +270,15 @@ for (const permission of ["core:default", "dialog:default", "fs:write-files"]) {
 }
 
 const cargo = read("src-tauri/Cargo.toml");
-for (const dependency of ["tauri-plugin-dialog", "tauri-plugin-fs"]) {
+for (const dependency of ["tauri-plugin-dialog", "tauri-plugin-fs", 'jni = "0.21"']) {
   if (!cargo.includes(dependency)) failures.push(`Native Cargo manifest is missing ${dependency}.`);
+}
+
+const androidExport = read("src-tauri/src/android_export.rs");
+for (const marker of ["getContentResolver", "openOutputStream", 'new_string("wt")']) {
+  if (!androidExport.includes(marker)) {
+    failures.push(`Android content-URI export adapter is missing required marker: ${marker}`);
+  }
 }
 
 if (failures.length) {

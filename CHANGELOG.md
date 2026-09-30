@@ -45,6 +45,36 @@ All notable changes to GradeCraft are documented here.
 - Tauri asset CSP rewriting is explicitly protected from being disabled by the release gate.
 - Vite is patched from 6.0.7 to 6.4.3 so network-exposed development/preview workflows include the current 6.x fixes for reviewed dev-server file-read and `server.fs.deny` bypass vulnerabilities.
 - Cross-platform export filename sanitization reduces path-like/default-name ambiguity before native file pickers and browser download APIs receive user-derived course names/codes.
+- Visible English/Hindi data-safety warning when browser or WebView persistence writes fail, so recent changes are not falsely presented as safely stored.
+- SHA-256 manifests for normal and tagged publication screenshot evidence, with repository/ref/event/run provenance recorded beside each artifact.
+- SHA-256 checksum publication beside the tagged `gradecraft-pwa.zip` release archive.
+- Regression coverage for modal accessibility/cancel behavior, denied/interrupted storage access, failed local-data clearing, persistence warnings, current navigation state, stale what-if deep links, and cross-platform export filename safety.
+
+### Changed
+
+- CI, E2E, Native, and CodeQL workflows can be manually dispatched for exact-ref verification and cancel superseded runs on the same ref.
+- The tag-release workflow separates read-only verification from the write-capable publication job; only verified staged release assets cross that boundary.
+- Repository checkouts in quality, E2E, native, CodeQL, and tagged verification disable persisted Git credentials.
+- Modal dialogs now expose their visible heading through `aria-labelledby` and require an explicit localized close label.
+- Primary navigation marks the active route with `aria-current`, including course-specific what-if planner routes.
+- What-if deep links now recover to an available course if the linked course has been deleted or replaced.
+- Export filenames are normalized centrally for browser and Tauri targets, including Windows reserved names, illegal path characters, trailing separators, and excessive length.
+- The static release gate now protects manual rerun support, concurrency controls, screenshot provenance/hashes, PWA checksums, least-privilege publication structure, and checkout credential isolation.
+
+### Fixed
+
+- Denied Local Storage reads no longer crash GradeCraft during startup.
+- Interrupted recovery-record inspection no longer triggers destructive cleanup of potentially recoverable local data.
+- Failed local-data clearing no longer resets only the in-memory view while leaving old persisted data behind.
+- Storage save failures are no longer ignored by application state.
+- Native dialog cancel events no longer risk invoking the modal close callback twice through the controlled close path.
+- Native/browser exports no longer pass unsafe user-derived course names or codes directly to platform filename handling.
+
+### Security
+
+- Release verification no longer runs repository code with a write-capable GitHub token.
+- Checkout credentials are not persisted into workspaces used by project scripts or tests.
+- Publication screenshot candidates and PWA release archives now include cryptographic checksums for integrity verification after download/promotion.
 
 ## [2.0.12] - 2026-08-19
 
@@ -75,7 +105,9 @@ All notable changes to GradeCraft are documented here.
 - CI artifacts for coverage and Playwright diagnostics.
 - Dedicated release-readiness evidence documentation.
 - Expanded Playwright journeys for course grading, GPA, localization persistence, and mapped CSV import.
-- Regression coverage for localization, encrypted backups, semester compatibility, weighted planning, PWA deployment rules, storage recovery, grading-scale safeguards, category references, restore cancellation, and control-prefixed CSV cells.
+- Deterministic Playwright publication-screenshot coverage for onboarding, dashboard, course detail, what-if planning, GPA, light/dark settings, and import/export views.
+- Successful E2E and tag-release screenshot artifacts containing exact commit/run evidence metadata, with tag metadata on release captures.
+- Regression coverage for localization, encrypted backups, semester compatibility, weighted planning, PWA deployment rules, storage recovery, grading-scale safeguards, category references, restore cancellation, export write failures, and control-prefixed CSV cells.
 
 ### Changed
 
@@ -83,7 +115,7 @@ All notable changes to GradeCraft are documented here.
 - Vite development hosting now respects `TAURI_DEV_HOST` and advertises a device-safe HMR websocket for physical mobile development.
 - Production service-worker registration now runs only on HTTP/HTTPS so packaged native WebViews do not try to register the PWA worker.
 - Browser downloads remain unchanged while native exports route through operating-system save dialogs and platform-aware filesystem writes.
-- The release gate now treats native source files, capabilities, platform documentation, native scripts, and Native CI as required release assets.
+- The release gate now treats native source files, capabilities, platform documentation, native scripts, Native CI, and browser screenshot-evidence wiring as required release assets.
 - Version synchronization now verifies `src-tauri/Cargo.toml` and requires Tauri to source its application version from `package.json`.
 - Setup, architecture, development, release-readiness, and release documentation now include explicit native-platform evidence and signing boundaries.
 - The About screen derives the displayed application version directly from `package.json` instead of duplicating a version literal in localization catalogs.
@@ -97,7 +129,8 @@ All notable changes to GradeCraft are documented here.
 - Playwright can run against an already-built release artifact so the exact verified `dist/` output is exercised before packaging.
 - `npm run verify` includes documentation-link validation, version synchronization, release-readiness validation, the production build, and bundle-size budgets.
 - Main CI enforces documentation links, version synchronization, release readiness, bundle budgets, and uploads coverage evidence.
-- Tag releases require an exact version/tag match, high-severity dependency audit, Chromium installation, and Playwright E2E before packaging.
+- E2E publication screenshots are retained only after successful browser verification and remain review-required candidates rather than automatically approved documentation assets.
+- Tag releases require an exact version/tag match, high-severity dependency audit, Chromium installation, Playwright E2E, and exact-tag screenshot evidence before packaging.
 - The release workflow no longer performs a redundant standalone build after `npm run verify`.
 
 ### Fixed
@@ -105,6 +138,9 @@ All notable changes to GradeCraft are documented here.
 - Packaged native applications no longer execute the browser-only service-worker registration path.
 - Native file exports no longer depend on browser anchor-download behavior that is inconsistent across system WebViews.
 - Mobile Vite development no longer assumes `localhost` is reachable from the physical device.
+- Cancelling a native encrypted-backup save no longer reports success or clears the passphrase fields.
+- Cancelling an encrypted restore after successful decryption no longer clears the passphrase when current local data was intentionally left unchanged.
+- Plain JSON/CSV export write failures now surface a localized user-visible safety message instead of being logged silently.
 - Removed stale hardcoded `GradeCraft 1.0.0` strings from English and Hindi catalogs so future releases cannot display an obsolete version.
 - Repaired Local Storage recovery so a corrupt primary record cannot overwrite a valid recovery snapshot during the first autosave.
 - Corrupt unrecoverable Local Storage records are cleared before a clean default state is initialized.

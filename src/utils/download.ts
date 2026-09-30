@@ -1,4 +1,25 @@
-import { isTauri } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+
+const WINDOWS_RESERVED_NAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
+const MAX_FILENAME_LENGTH = 180;
+
+export function sanitizeDownloadFilename(filename: string): string {
+  const cleaned = filename
+    .trim()
+    .replace(/[\u0000-\u001f<>:"/\\|?*]/g, "_")
+    .replace(/[. ]+$/g, "");
+  const withFallback = cleaned || "gradecraft-export.txt";
+  const withSafeDeviceName = WINDOWS_RESERVED_NAME.test(withFallback) ? `_${withFallback}` : withFallback;
+  if (withSafeDeviceName.length <= MAX_FILENAME_LENGTH) return withSafeDeviceName;
+
+  const separator = withSafeDeviceName.lastIndexOf(".");
+  if (separator > 0) {
+    const extension = withSafeDeviceName.slice(separator);
+    const stemLength = Math.max(1, MAX_FILENAME_LENGTH - extension.length);
+    return `${withSafeDeviceName.slice(0, stemLength)}${extension.slice(0, MAX_FILENAME_LENGTH - stemLength)}`;
+  }
+  return withSafeDeviceName.slice(0, MAX_FILENAME_LENGTH);
+}
 
 const WINDOWS_RESERVED_NAME=/^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
 const INVALID_FILENAME_CHARACTERS=/[\u0000-\u001f<>:"/\\|?*]/g;
@@ -27,17 +48,21 @@ function filterName(type: string): string {
 
 export async function downloadText(filename: string, content: string, type = "text/plain"): Promise<boolean> {
   const safeFilename=sanitizeDownloadFilename(filename);
+  const safeFilename = sanitizeDownloadFilename(filename);
   if (isTauri()) {
-    const [{ save }, { writeTextFile }] = await Promise.all([
-      import("@tauri-apps/plugin-dialog"),
-      import("@tauri-apps/plugin-fs"),
-    ]);
+    const { save } = await import("@tauri-apps/plugin-dialog");
     const selectedPath = await save({
       defaultPath: safeFilename,
       filters: [{ name: filterName(type), extensions: [fileExtension(safeFilename)] }],
     });
     if (!selectedPath) return false;
-    await writeTextFile(selectedPath, content);
+
+    if (selectedPath.startsWith("content://")) {
+      await invoke("write_android_content_uri", { uri: selectedPath, content });
+    } else {
+      const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+      await writeTextFile(selectedPath, content);
+    }
     return true;
   }
 
