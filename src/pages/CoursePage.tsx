@@ -35,19 +35,22 @@ export function CoursePage({ id }: { id: string }) {
     );
   }
 
-  const result = calculateCourseGrade(course);
-  const scale = data.gradeScales.find((item) => item.id === course.scaleId);
+  const currentCourse = course;
+  const result = calculateCourseGrade(currentCourse);
+  const scale = data.gradeScales.find((item) => item.id === currentCourse.scaleId);
   const band = scale ? gradeBandForPercent(result.percent, scale) : null;
-  const categoryNames = Object.fromEntries(course.categories.map((category) => [category.id, category.name]));
+  const categoryNames = Object.fromEntries(
+    currentCourse.categories.map((category) => [category.id, category.name]),
+  );
 
   function saveAssignment(assignment: Assignment) {
-    const exists = course.assignments.some((item) => item.id === assignment.id);
+    const exists = currentCourse.assignments.some((item) => item.id === assignment.id);
     const assignments = exists
-      ? course.assignments.map((item) => (item.id === assignment.id ? assignment : item))
-      : [...course.assignments, assignment];
+      ? currentCourse.assignments.map((item) => (item.id === assignment.id ? assignment : item))
+      : [...currentCourse.assignments, assignment];
     dispatch({
       type: "course/update",
-      course: { ...course, assignments, updatedAt: new Date().toISOString() },
+      course: { ...currentCourse, assignments, updatedAt: new Date().toISOString() },
     });
     setAssignmentOpen(false);
     setEditingAssignment(null);
@@ -57,8 +60,8 @@ export function CoursePage({ id }: { id: string }) {
     dispatch({
       type: "course/update",
       course: {
-        ...course,
-        assignments: course.assignments.filter((item) => item.id !== assignment.id),
+        ...currentCourse,
+        assignments: currentCourse.assignments.filter((item) => item.id !== assignment.id),
         updatedAt: new Date().toISOString(),
       },
     });
@@ -70,8 +73,8 @@ export function CoursePage({ id }: { id: string }) {
     dispatch({
       type: "course/update",
       course: {
-        ...course,
-        assignments: [...course.assignments, lastDeleted],
+        ...currentCourse,
+        assignments: [...currentCourse.assignments, lastDeleted],
         updatedAt: new Date().toISOString(),
       },
     });
@@ -85,11 +88,11 @@ export function CoursePage({ id }: { id: string }) {
           <button className="back-link" onClick={() => navigate("/dashboard")}>
             ← {messages.backCourses}
           </button>
-          <p className="eyebrow">{course.code || messages.courseFallback}</p>
-          <h1>{course.name}</h1>
+          <p className="eyebrow">{currentCourse.code || messages.courseFallback}</p>
+          <h1>{currentCourse.name}</h1>
           <p>
-            {course.mode === "weighted" ? messages.weightedGrading : messages.pointsGrading}
-            {course.semester ? ` · ${course.semester}` : ""}
+            {currentCourse.mode === "weighted" ? messages.weightedGrading : messages.pointsGrading}
+            {currentCourse.semester ? ` · ${currentCourse.semester}` : ""}
           </p>
         </div>
         <div className="button-row">
@@ -126,7 +129,7 @@ export function CoursePage({ id }: { id: string }) {
             </div>
             <div>
               <dt>{messages.activeWeight}</dt>
-              <dd>{course.mode === "weighted" ? `${result.activeWeight.toFixed(1)}%` : "N/A"}</dd>
+              <dd>{currentCourse.mode === "weighted" ? `${result.activeWeight.toFixed(1)}%` : "N/A"}</dd>
             </div>
             <div>
               <dt>{messages.scale}</dt>
@@ -138,12 +141,12 @@ export function CoursePage({ id }: { id: string }) {
       <Card
         title={messages.assignmentsTitle}
         actions={
-          <Button variant="secondary" onClick={() => navigate(`/what-if/${course.id}`)}>
+          <Button variant="secondary" onClick={() => navigate(`/what-if/${currentCourse.id}`)}>
             {messages.openWhatIf}
           </Button>
         }
       >
-        {course.assignments.length === 0 ? (
+        {currentCourse.assignments.length === 0 ? (
           <EmptyState title={messages.noAssignments} description={messages.noAssignmentsHint} />
         ) : (
           <div className="table-wrap">
@@ -159,7 +162,7 @@ export function CoursePage({ id }: { id: string }) {
                 </tr>
               </thead>
               <tbody>
-                {course.assignments.map((assignment) => {
+                {currentCourse.assignments.map((assignment) => {
                   const percent = (assignment.score / assignment.maxScore) * 100;
                   return (
                     <tr key={assignment.id}>
@@ -190,7 +193,7 @@ export function CoursePage({ id }: { id: string }) {
       </Card>
       <div className="two-column">
         <Card title={messages.scoreTrend}>
-          <TrendChart assignments={course.assignments} />
+          <TrendChart assignments={currentCourse.assignments} />
         </Card>
         <Card title={messages.categoryContribution}>
           <ContributionChart results={result.categoryResults} names={categoryNames} />
@@ -201,8 +204,8 @@ export function CoursePage({ id }: { id: string }) {
         <Button
           variant="danger"
           onClick={() => {
-            if (window.confirm(messages.deleteCourseConfirm(course.name))) {
-              dispatch({ type: "course/delete", id: course.id });
+            if (window.confirm(messages.deleteCourseConfirm(currentCourse.name))) {
+              dispatch({ type: "course/delete", id: currentCourse.id });
               navigate("/dashboard");
             }
           }}
@@ -217,7 +220,7 @@ export function CoursePage({ id }: { id: string }) {
         closeLabel={messages.cancel}
       >
         <AssignmentForm
-          course={course}
+          course={currentCourse}
           onSave={saveAssignment}
           onCancel={() => setAssignmentOpen(false)}
         />
@@ -230,7 +233,7 @@ export function CoursePage({ id }: { id: string }) {
       >
         {editingAssignment && (
           <AssignmentForm
-            course={course}
+            course={currentCourse}
             initial={editingAssignment}
             onSave={saveAssignment}
             onCancel={() => setEditingAssignment(null)}
@@ -245,7 +248,7 @@ export function CoursePage({ id }: { id: string }) {
       >
         <CourseForm
           scales={data.gradeScales}
-          initial={course}
+          initial={currentCourse}
           onCancel={() => setEditOpen(false)}
           onSave={(updated) => {
             dispatch({ type: "course/update", course: updated });

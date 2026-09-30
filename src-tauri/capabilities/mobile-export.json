@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile-export",
+  "description": "Allow the local GradeCraft main window to use native mobile save pickers and write only the file selected by the user.",
+  "windows": ["main"],
+  "platforms": ["iOS", "android"],
+  "permissions": ["dialog:default", "fs:write-files"]
+}

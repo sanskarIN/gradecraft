@@ -8,7 +8,7 @@ export default defineConfig({
   clearScreen: false,
   plugins: [react()],
   build: {
-    sourcemap: true,
+    sourcemap: false,
     target: "es2020",
   },
   server: {

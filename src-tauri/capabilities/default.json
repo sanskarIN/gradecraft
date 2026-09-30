@@ -1,11 +1,6 @@
 {
-  "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Allow the local GradeCraft UI to use native save dialogs and write user-selected export files.",
+  "description": "Shared least-privilege core capability for the local GradeCraft main window on every native target.",
   "windows": ["main"],
-  "permissions": [
-    "core:default",
-    "dialog:default",
-    "fs:write-files"
-  ]
+  "permissions": ["core:default"]
 }

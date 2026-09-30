@@ -1,3 +1,38 @@
-import { readFileSync } from "node:fs";import { describe,expect,it } from "vitest";
-function text(path:string){return readFileSync(path,"utf8");}
-describe("PWA deployment invariants",()=>{it("uses a portable Vite base and base-aware HTML resources",()=>{expect(text("vite.config.ts")).toContain('base:"./"');const html=text("index.html");expect(html).toContain('%BASE_URL%manifest.webmanifest');expect(html).toContain('%BASE_URL%icons/icon.svg');});it("keeps manifest navigation and icons relative to its deployment scope",()=>{const manifest=JSON.parse(text("public/manifest.webmanifest")) as {start_url:string;scope:string;icons:Array<{src:string}>};expect(manifest.start_url).toBe("./");expect(manifest.scope).toBe("./");expect(manifest.icons.every((icon)=>!icon.src.startsWith("/"))).toBe(true);});it("registers the service worker from the Vite base",()=>{expect(text("src/main.tsx")).toContain('`${import.meta.env.BASE_URL}sw.js`');});it("uses network-first navigation with an offline index fallback",()=>{const worker=text("public/sw.js");expect(worker).toContain('event.request.mode==="navigate"');expect(worker).toContain("fetch(event.request)");expect(worker).toContain("caches.match(INDEX)");expect(worker).toContain('CACHE="gradecraft-v2"');});});
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+
+function text(path: string) {
+  return readFileSync(path, "utf8");
+}
+
+describe("PWA deployment invariants", () => {
+  it("uses a portable Vite base and base-aware HTML resources", () => {
+    expect(text("vite.config.ts")).toMatch(/base:\s*["']\.\/["']/);
+    const html = text("index.html");
+    expect(html).toContain("%BASE_URL%manifest.webmanifest");
+    expect(html).toContain("%BASE_URL%icons/icon.svg");
+  });
+
+  it("keeps manifest navigation and icons relative to its deployment scope", () => {
+    const manifest = JSON.parse(text("public/manifest.webmanifest")) as {
+      start_url: string;
+      scope: string;
+      icons: Array<{ src: string }>;
+    };
+    expect(manifest.start_url).toBe("./");
+    expect(manifest.scope).toBe("./");
+    expect(manifest.icons.every((icon) => !icon.src.startsWith("/"))).toBe(true);
+  });
+
+  it("registers the service worker from the Vite base", () => {
+    expect(text("src/main.tsx")).toContain('`${import.meta.env.BASE_URL}sw.js`');
+  });
+
+  it("uses network-first navigation with an offline index fallback", () => {
+    const worker = text("public/sw.js");
+    expect(worker).toContain('event.request.mode==="navigate"');
+    expect(worker).toContain("fetch(event.request)");
+    expect(worker).toContain("caches.match(INDEX)");
+    expect(worker).toContain('CACHE="gradecraft-v2"');
+  });
+});

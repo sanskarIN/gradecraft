@@ -19,19 +19,22 @@
 
 ## Platforms
 
-GradeCraft now targets the major web, desktop, and mobile platforms from the same application codebase:
+GradeCraft targets the major web, desktop, tablet, and mobile platforms from the same application codebase:
 
 | Platform | Support | Delivery |
 | --- | --- | --- |
-| Web | Supported | Progressive Web App / static `dist/` build |
+| Web | Supported | Responsive browser application / static `dist/` build |
+| PWA | Supported | Installable offline-capable app on compatible desktop and mobile browsers |
 | Windows | Supported | Tauri native desktop application |
 | macOS | Supported | Tauri native desktop application |
 | Linux | Supported | Tauri native desktop application |
-| Android | Supported | Tauri Android project, APK/AAB builds |
-| iOS / iPadOS | Supported | Tauri iOS project and IPA workflow on macOS |
+| Android | Supported | Tauri Android application, APK/AAB builds |
+| iOS / iPadOS | Supported | Tauri iOS application and Apple distribution workflow on macOS |
 | ChromeOS | Supported through modern browser/PWA | Progressive Web App |
 
-Native packaging uses Tauri 2 while the PWA remains a first-class target. The grade engine, data schema, backups, CSV format, localization, UI, and tests stay shared instead of being reimplemented per operating system.
+Native packaging uses Tauri 2 while the PWA remains a first-class target. The grade engine, data schema, backups, CSV format, localization, accessibility behavior, UI, and tests stay shared instead of being reimplemented per operating system.
+
+The frontend detects browser/PWA/native runtime and phone/tablet/desktop form factor, exposes those signals through root data attributes, handles mobile display cutouts and gesture safe areas, preserves touch-friendly target sizing, and uses dynamic viewport units for installed mobile applications.
 
 See [`docs/platforms.md`](docs/platforms.md) for platform prerequisites, native build commands, Android executable/package commands, iOS requirements, signing boundaries, artifact locations, and troubleshooting.
 
@@ -58,6 +61,8 @@ Real release screenshots should be captured from verified built applications and
 - Offline PWA shell with service-worker caching
 - Native Windows, macOS, Linux, Android, and iOS shells through Tauri 2
 - Native save dialogs for JSON, encrypted-backup, and CSV exports
+- Runtime-aware browser/PWA/native and platform detection
+- Mobile safe-area, dynamic-viewport, touch-target, and phone/tablet adaptations
 - Light, dark, and system themes
 - Reduced-motion and compact accessibility preferences
 - Responsive phone/tablet/desktop layouts
@@ -69,7 +74,7 @@ Real release screenshots should be captured from verified built applications and
 
 Grade data is stored locally in the current browser or installed application's WebView storage. GradeCraft does not require sign-in or transmit grades, backup contents, or backup passphrases to a GradeCraft server. Imports are parsed locally.
 
-Native packaging does not introduce a backend. Tauri capabilities are scoped to the local GradeCraft window and currently expose only the system-dialog/file-write functionality required to save user-requested exports.
+Native packaging does not introduce a backend. Tauri uses a shared core capability plus separate desktop and mobile export capabilities, keeping native dialog and file-write access limited to the local GradeCraft window and the user-requested export workflow.
 
 See [`PRIVACY.md`](PRIVACY.md), [`SECURITY.md`](SECURITY.md), and [`docs/architecture.md`](docs/architecture.md).
 
@@ -269,6 +274,7 @@ with the exact version from `package.json`.
 - `src/domain/` — pure grade, GPA, what-if, validation, and data model rules
 - `src/data/` — local persistence, backup, encrypted backup, CSV, and safe logging
 - `src/i18n/` — typed English/Hindi catalogs and specialized portable-data messages
+- `src/platform/` — runtime/platform/form-factor detection and cross-platform layout adaptations
 - `src/state/` — explicit application-state wiring
 - `src/components/` — reusable accessible UI primitives
 - `src/pages/` — route-level product experiences
@@ -281,7 +287,7 @@ Read [`docs/architecture.md`](docs/architecture.md) and [`docs/adr/`](docs/adr/)
 
 ## Native CI
 
-`.github/workflows/native.yml` validates the Tauri core on Ubuntu, Windows, and macOS and validates Android/iOS scaffold generation on suitable hosted runners. Store signing is intentionally not performed in pull-request CI because signing credentials are release secrets.
+`.github/workflows/native.yml` compile-checks the Tauri core and builds the desktop application on Ubuntu, Windows, and macOS. It also generates and compiles an Android x86_64 debug APK and generates and compiles an unsigned Apple-Silicon iOS simulator application. Store signing is intentionally not performed in pull-request CI because signing credentials are release secrets.
 
 ## Contributing
 
