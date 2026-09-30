@@ -162,10 +162,33 @@ Use sample data to prove that portable files remain compatible across targets:
 - Review dependency audit, CodeQL, Dependabot, and native workflow state.
 - Confirm `npm run perf:budget` passed and investigate any material compressed-size regression even when the hard budget remains green.
 - Confirm `npm run version:check` passed on the exact commit intended for `v2.0.12`.
+- Confirm repository checkouts used by project code keep `persist-credentials: false` and that release verification remains read-only.
 
 ## 8. Publication assets
 
-Capture **real screenshots from verified builds** and place them in `docs/screenshots/`. Do not substitute generated or mock screenshots as proof of functionality.
+Playwright captures real browser screenshot candidates from the production UI during `npm run test:e2e`:
+
+- onboarding;
+- course dashboard;
+- representative course detail;
+- what-if planner;
+- GPA;
+- settings in light and dark themes;
+- import/export.
+
+On a successful normal E2E workflow, GitHub Actions uploads `publication-screenshots-<commit-sha>`. On a successful tag release, the release workflow runs Playwright against the already-built `dist/` output and uploads `release-screenshots-<tag>-<commit-sha>`.
+
+Both screenshot artifacts contain:
+
+- `EVIDENCE.txt` with repository, exact commit, ref, triggering event, workflow, run ID, and run attempt;
+- the captured PNG files;
+- `SHA256SUMS.txt`, generated from those PNG files before upload.
+
+The tagged evidence additionally records the exact release tag. After downloading an artifact, verify its PNG integrity from the artifact directory with `sha256sum -c SHA256SUMS.txt` on systems that provide GNU coreutils, or an equivalent SHA-256 checker on the release host.
+
+Do not automatically treat these files as approved publication screenshots. Confirm the exact successful Actions run, verify the evidence/checksum manifest, visually review every capture, and then copy only accepted images into `docs/screenshots/`. See [`screenshots/README.md`](screenshots/README.md).
+
+Native/store screenshots must still come from a positively verified build of the relevant native target. Browser evidence cannot be used to claim that a Windows, macOS, Linux, Android, or iOS package was built or smoke-tested.
 
 If a hosted demo is published, smoke-test that exact deployment URL, including service-worker scope, direct reloads, PWA installation, and offline behavior. Add the verified URL to README only after it works.
 
@@ -177,10 +200,12 @@ Store screenshots and metadata should reflect the actual target build being publ
 2. Run `npm run version:check` again on that exact commit.
 3. Validate the intended tag with `npm run release:tag -- v2.0.12`.
 4. Create and push tag `v2.0.12` only after the prior checks have positive evidence.
-5. The existing GitHub release workflow validates the tag/package version pair, runs `npm run verify`, runs the high-severity dependency audit, installs Chromium, and executes Playwright against the already-built verified `dist/` output.
-6. The release workflow packages `dist/` into `gradecraft-pwa.zip` only after its gates pass.
-7. Native installers/packages must be attached or distributed only after their own platform build, smoke test, and signing evidence is complete. Do not label an unbuilt platform as released merely because the source supports it.
-8. Verify every published artifact came from the expected commit.
+5. The `verify` job runs with read-only repository permission, validates the tag/package version pair, runs `npm run verify`, runs the high-severity dependency audit, installs Chromium, and executes Playwright against the already-built verified `dist/` output.
+6. The `verify` job records screenshot evidence/checksums, packages `dist/` into `gradecraft-pwa.zip`, generates `gradecraft-pwa.zip.sha256`, and stages only those verified PWA release files as a short-lived Actions artifact.
+7. The separate `publish` job depends on successful verification, downloads the staged PWA release files, receives the write-capable `contents` permission, and publishes the GitHub release. Repository project code is not checked out or executed in that write-capable job.
+8. Confirm the published GitHub release contains both `gradecraft-pwa.zip` and `gradecraft-pwa.zip.sha256`; verify the archive against that checksum after downloading it.
+9. Native installers/packages must be attached or distributed only after their own platform build, smoke test, and signing evidence is complete. Do not label an unbuilt platform as released merely because the source supports it.
+10. Verify every published artifact came from the expected commit.
 
 ## Future version bumps
 

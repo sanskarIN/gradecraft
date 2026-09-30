@@ -10,18 +10,51 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   chromium:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - run: npm install --ignore-scripts
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - name: Record screenshot evidence metadata
+        if: success()
+        run: |
+          {
+            echo "repository=$GITHUB_REPOSITORY"
+            echo "commit=$GITHUB_SHA"
+            echo "ref=$GITHUB_REF"
+            echo "event=$GITHUB_EVENT_NAME"
+            echo "workflow=$GITHUB_WORKFLOW"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+          } > test-results/publication-screenshots/EVIDENCE.txt
+      - name: Hash publication screenshot candidates
+        if: success()
+        shell: bash
+        run: |
+          cd test-results/publication-screenshots
+          find . -maxdepth 1 -type f -name '*.png' -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS.txt
+          test -s SHA256SUMS.txt
+      - name: Upload publication screenshot candidates
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: publication-screenshots-${{ github.sha }}
+          path: test-results/publication-screenshots/
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
