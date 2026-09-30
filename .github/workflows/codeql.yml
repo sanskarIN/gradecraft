@@ -7,10 +7,15 @@ on:
     branches: ["main"]
   schedule:
     - cron: "23 3 * * 4"
+  workflow_dispatch:
 
 permissions:
   contents: read
   security-events: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
@@ -21,6 +26,8 @@ jobs:
         language: ["javascript-typescript"]
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}

@@ -5,14 +5,16 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  release:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
@@ -24,6 +26,34 @@ jobs:
       - run: npm run test:e2e
         env:
           GRADECRAFT_E2E_PREBUILT: "1"
+      - name: Record release screenshot evidence metadata
+        if: success()
+        run: |
+          {
+            echo "repository=$GITHUB_REPOSITORY"
+            echo "commit=$GITHUB_SHA"
+            echo "ref=$GITHUB_REF"
+            echo "event=$GITHUB_EVENT_NAME"
+            echo "tag=$GITHUB_REF_NAME"
+            echo "workflow=$GITHUB_WORKFLOW"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+          } > test-results/publication-screenshots/EVIDENCE.txt
+      - name: Hash tagged publication screenshot candidates
+        if: success()
+        shell: bash
+        run: |
+          cd test-results/publication-screenshots
+          find . -maxdepth 1 -type f -name '*.png' -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS.txt
+          test -s SHA256SUMS.txt
+      - name: Upload tagged publication screenshot candidates
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-screenshots-${{ github.ref_name }}-${{ github.sha }}
+          path: test-results/publication-screenshots/
+          if-no-files-found: error
+          retention-days: 30
       - name: Upload release Playwright report
         if: always()
         uses: actions/upload-artifact@v4
@@ -32,8 +62,36 @@ jobs:
           path: playwright-report/
           if-no-files-found: ignore
           retention-days: 14
-      - run: cd dist && zip -r ../gradecraft-pwa.zip .
-      - uses: softprops/action-gh-release@v2
+      - name: Package PWA release archive
+        run: cd dist && zip -r ../gradecraft-pwa.zip .
+      - name: Hash PWA release archive
+        run: sha256sum gradecraft-pwa.zip > gradecraft-pwa.zip.sha256
+      - name: Stage verified PWA release assets
+        uses: actions/upload-artifact@v4
         with:
-          files: gradecraft-pwa.zip
+          name: release-pwa-${{ github.ref_name }}-${{ github.sha }}
+          path: |
+            gradecraft-pwa.zip
+            gradecraft-pwa.zip.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified PWA release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-pwa-${{ github.ref_name }}-${{ github.sha }}
+          path: release-assets
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            release-assets/gradecraft-pwa.zip
+            release-assets/gradecraft-pwa.zip.sha256
           generate_release_notes: true
