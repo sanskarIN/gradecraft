@@ -49,7 +49,7 @@ jobs:
           test -s SHA256SUMS.txt
       - name: Upload publication screenshot candidates
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: publication-screenshots-${{ github.sha }}
           path: test-results/publication-screenshots/
@@ -57,7 +57,7 @@ jobs:
           retention-days: 14
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: playwright-report/
